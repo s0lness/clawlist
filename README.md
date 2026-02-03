@@ -114,3 +114,73 @@ If search organized information, intent organizes demand. This moves coordinatio
 
 ## Status
 MVP design phase.
+
+## Diagrams
+
+### System overview
+```mermaid
+flowchart LR
+  subgraph LocalAgentA[Agent A]
+    AIntent[Intent Store]
+    AMatch[Matcher]
+    ANeg[Negotiator]
+    ADeal[Deal Store]
+  end
+
+  subgraph LocalAgentB[Agent B]
+    BIntent[Intent Store]
+    BMatch[Matcher]
+    BNeg[Negotiator]
+    BDeal[Deal Store]
+  end
+
+  subgraph Matrix[Matrix Transport]
+    Room[Gossip Room]
+    DM[Encrypted DMs]
+  end
+
+  subgraph Adapters[Execution Adapters]
+    Escrow[Escrow PSP]
+    Ship[Shipping + Tracking]
+    Ins[Insurance Optional]
+  end
+
+  AIntent --> AMatch
+  BIntent --> BMatch
+
+  AMatch -- gossip.intent.v1 --> Room
+  BMatch -- gossip.intent.v1 --> Room
+
+  Room --> BMatch
+  Room --> AMatch
+
+  ANeg <--> DM
+  BNeg <--> DM
+
+  ANeg --> ADeal
+  BNeg --> BDeal
+
+  ADeal --> Escrow
+  ADeal --> Ship
+  ADeal --> Ins
+```
+
+### Core flow
+```mermaid
+sequenceDiagram
+  participant A as Agent A
+  participant R as Gossip Room
+  participant B as Agent B
+  participant D as Encrypted DM
+  participant E as Execution Adapters
+
+  A->>R: gossip.intent.v1 (blurred signal)
+  R-->>B: deliver gossip
+  B->>D: interest / question
+  D-->>A: DM message
+  A->>D: offer / counter
+  D-->>B: DM message
+  A<->>B: sign deal object
+  A->>E: escrow + shipping + insurance
+  B->>E: track + confirm delivery
+```
