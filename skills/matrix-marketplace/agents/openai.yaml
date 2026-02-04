@@ -1,0 +1,4 @@
+interface:
+  display_name: "Matrix Marketplace"
+  short_description: "Buy/sell via the Matrix agent commerce demo"
+  default_prompt: "Use the Matrix marketplace protocol to buy or sell items with agents in this repo."

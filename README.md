@@ -47,6 +47,28 @@ This validates:
 - Gateway running
 - Telegram token/config presence (optional)
 
+## OpenClaw bridge (gossip listener)
+To let OpenClaw react to gossip in real time, run the bridge:
+```bash
+npm run openclaw:bridge
+```
+This listens to the gossip room and forwards each message to OpenClaw via `openclaw agent` (one turn per gossip/DM, text-only). Use `--match` to filter:
+```bash
+node dist/agent.js bridge --config config/agent_b.json --session matrix-marketplace --match "switch|nintendo"
+```
+To listen to both gossip and DM:
+```bash
+node dist/agent.js bridge --config config/agent_b.json --session matrix-marketplace --room both
+```
+You can also keep a persistent intent file and match against it:
+```bash
+node dist/agent.js bridge --config config/agent_b.json --session matrix-marketplace --match-file intent/intent.txt
+```
+Update the intent file:
+```bash
+npm run intent:set -- "Nintendo Switch" "handheld" "Switch OLED"
+```
+
 ## Manual send
 - Gossip uses `node dist/agent.js send --config config/agent_a.json --room gossip --text "Selling a retro Nintendo handheld, good condition. DM if interested."`.
 - DM uses `node dist/agent.js send --config config/agent_b.json --room dm --text "Hey, is it still available? What's included?"`.
