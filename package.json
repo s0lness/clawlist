@@ -6,10 +6,15 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "agent": "node dist/agent.js",
-    "demo": "npm run build && node scripts/demo.js"
+    "demo": "npm run build && node scripts/demo.js",
+    "openclaw:start": "bash scripts/openclaw-start.sh",
+    "openclaw:check": "bash scripts/openclaw-check.sh"
   },
   "dependencies": {
-    "matrix-js-sdk": "^40.1.0"
+    "@openai/codex-sdk": "latest",
+    "@anthropic-ai/sdk": "^0.32.0",
+    "matrix-js-sdk": "^40.1.0",
+    "openai": "^4.80.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.30",
