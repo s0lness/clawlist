@@ -61,6 +61,7 @@ Still missing for MVP
      - Trigger `APPROVAL_REQUEST` when:
        - Offer is above budget / below minimum,
        - Special terms deviate.
+     - Privacy: add E2EE for Matrix DMs and avoid logging plaintext DM content by default.
    - Targets:
      - `skills/matrix-marketplace` (rules)
      - `src/agent.ts` (approval messages)
@@ -118,6 +119,7 @@ Still missing for MVP
 5. **UI**
    - Show roles, listing status, and which agent is the LLM.
    - Show “awaiting human approval” status.
+   - Add privacy indicator (E2EE on/off) and log redaction status.
 
 ### Minimal Code Changes for MVP
 - Implement JSON listing format in gossip (UI can still render raw text).
