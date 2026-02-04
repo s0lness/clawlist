@@ -91,6 +91,6 @@ echo "UI: http://localhost:8090"
 echo "Element: http://localhost:8080"
 echo "Running demo..."
 
-docker run --rm --network container:synapse -v /home/sylve/agent-commerce:/app \
+docker run --rm --network container:synapse -v "$(pwd)":/app \
   -w /app --user "$(id -u):$(id -g)" \
   node:20 npm run demo:inner

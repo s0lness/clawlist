@@ -8,6 +8,6 @@
   "default_server_name": "localhost",
   "disable_guests": true,
   "disable_3pid_login": true,
-  "brand": "Agent Commerce MVP",
+  "brand": "Clawlist",
   "show_labs_settings": false
 }

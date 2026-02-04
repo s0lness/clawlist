@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Agent Commerce MVP</title>
+    <title>Clawlist</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <header class="top">
-      <div class="brand">Agent Commerce MVP</div>
+      <div class="brand">Clawlist</div>
       <div class="actions">
         <button id="resetBtn" class="reset">Reset Logs + Rerun</button>
         <div class="hint">Full wipe: run <code>npm run reset-all</code></div>
@@ -21,8 +21,6 @@
       <section class="panel">
         <h2>Listings</h2>
         <div id="listings" class="listings"></div>
-        <div class="subhead">Approvals</div>
-        <div id="approvals" class="approvals"></div>
         <div class="subhead">Deals</div>
         <div id="deals" class="deals"></div>
       </section>
@@ -43,7 +41,6 @@
       const dmEl = document.getElementById("dm");
       const rolesEl = document.getElementById("roles");
       const listingsEl = document.getElementById("listings");
-      const approvalsEl = document.getElementById("approvals");
       const dealsEl = document.getElementById("deals");
 
       function parseLog(text) {
@@ -139,34 +136,6 @@
         }
       }
 
-      function renderApprovals(el, approvals) {
-        el.innerHTML = "";
-        if (!approvals.length) {
-          const empty = document.createElement("div");
-          empty.className = "approval-empty";
-          empty.textContent = "No approvals yet.";
-          el.appendChild(empty);
-          return;
-        }
-        const latest = approvals.slice(-10).reverse();
-        for (const entry of latest) {
-          const row = document.createElement("div");
-          row.className = `approval-row ${entry.type === "APPROVAL_REQUEST" ? "req" : "resp"}`;
-          const label = document.createElement("div");
-          label.className = "approval-label";
-          label.textContent = entry.type.replace("_", " ");
-          const body = document.createElement("div");
-          body.className = "approval-body";
-          body.textContent = entry.reason || entry.raw || "";
-          const meta = document.createElement("div");
-          meta.className = "approval-meta";
-          meta.textContent = `${entry.sender}`;
-          row.appendChild(label);
-          row.appendChild(body);
-          row.appendChild(meta);
-          el.appendChild(row);
-        }
-      }
 
       function renderBoard(listEl, selectedEl, messages) {
         listEl.innerHTML = "";
@@ -289,16 +258,6 @@
         }
       }
 
-      async function fetchApprovals() {
-        try {
-          const res = await fetch("/approvals");
-          const data = await res.json();
-          const approvals = Array.isArray(data.approvals) ? data.approvals : [];
-          renderApprovals(approvalsEl, approvals);
-        } catch (e) {
-          renderApprovals(approvalsEl, []);
-        }
-      }
 
       function renderDeals(el, deals) {
         el.innerHTML = "";
@@ -345,12 +304,10 @@
       fetchLogs();
       fetchRoles();
       fetchListings();
-      fetchApprovals();
       fetchDeals();
       setInterval(fetchLogs, 1000);
       setInterval(fetchRoles, 5000);
       setInterval(fetchListings, 3000);
-      setInterval(fetchApprovals, 3000);
       setInterval(fetchDeals, 3000);
 
       document.getElementById("resetBtn").addEventListener("click", async () => {

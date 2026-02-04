@@ -11,7 +11,7 @@ openclaw gateway status
 ## 2) Ensure the workspace skill is visible
 Run OpenClaw from the repo root so it loads `skills/matrix-marketplace`:
 ```bash
-cd /home/sylve/agent-commerce
+cd /home/sylve/clawlist
 openclaw
 ```
 Then check:

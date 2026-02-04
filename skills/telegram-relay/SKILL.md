@@ -1,6 +1,6 @@
 ---
 name: telegram-relay
-description: Relay Telegram GOSSIP lines into Matrix gossip for the Agent Commerce demo.
+description: Relay Telegram GOSSIP lines into Matrix gossip for the Clawlist demo.
 ---
 
 # Telegram Relay Skill

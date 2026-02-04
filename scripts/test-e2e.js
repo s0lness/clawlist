@@ -23,6 +23,14 @@ function readLines(file) {
   }
 }
 
+function resetLogs() {
+  fs.mkdirSync(LOG_DIR, { recursive: true });
+  const files = ["gossip.log", "dm.log", "listings.jsonl", "approvals.jsonl", "deals.jsonl"];
+  for (const file of files) {
+    fs.writeFileSync(path.join(LOG_DIR, file), "", "utf8");
+  }
+}
+
 function runAndWaitForLogs(cmd, args, timeoutMs) {
   return new Promise((resolve, reject) => {
     const child = spawn(cmd, args, { cwd: ROOT, stdio: "inherit" });
@@ -34,8 +42,9 @@ function runAndWaitForLogs(cmd, args, timeoutMs) {
       const hasListing = listings.length > 0;
       const hasDeal = deals.some((line) => line.includes("DEAL_SUMMARY")) || deals.length > 0;
       const hasDm = dms.length > 0;
+      const hasSeller = dms.some((line) => line.includes("@agent_a:localhost"));
 
-      if (hasListing && hasDm && hasDeal) {
+      if (hasListing && hasDm && hasDeal && hasSeller) {
         clearInterval(timer);
         child.kill("SIGTERM");
         resolve();
@@ -72,6 +81,7 @@ async function main() {
     return;
   }
 
+  resetLogs();
   await runAndWaitForLogs("npm", ["run", "demo:llm-buyer"], 180000);
 
   console.log("e2e tests passed");

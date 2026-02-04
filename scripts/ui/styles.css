@@ -171,56 +171,6 @@ body {
   color: var(--muted);
 }
 
-.approvals {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 28vh;
-  overflow: auto;
-  padding: 6px;
-}
-
-.approval-row {
-  border: 1px solid #eadfca;
-  background: #fffaf2;
-  border-radius: 8px;
-  padding: 8px;
-}
-
-.approval-row.req {
-  border-color: #d35400;
-  background: #fff1db;
-}
-
-.approval-row.resp {
-  border-color: #6aa84f;
-  background: #f1fff0;
-}
-
-.approval-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--muted);
-}
-
-.approval-body {
-  font-size: 12px;
-  margin-top: 4px;
-}
-
-.approval-meta {
-  font-size: 10px;
-  margin-top: 4px;
-  color: var(--muted);
-}
-
-.approval-empty {
-  font-size: 12px;
-  color: var(--muted);
-  padding: 6px;
-}
-
 .deals {
   display: flex;
   flex-direction: column;

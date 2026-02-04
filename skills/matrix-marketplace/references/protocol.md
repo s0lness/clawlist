@@ -30,8 +30,9 @@
 - `Deal Summary: ...` or `DEAL_SUMMARY ...`
 - Human responds with `APPROVAL_RESPONSE approve|decline` to confirm or reject.
 - Agent sends `CONFIRMED` after approval.
- - Recommended: prompt the human explicitly after the summary (e.g., "Confirm deal? Reply APPROVAL_RESPONSE approve|decline").
+- Recommended: prompt the human explicitly after the summary (e.g., "Confirm deal? Reply APPROVAL_RESPONSE approve|decline").
 
 ## Guardrails Location
 - Guardrails are enforced in the OpenClaw skill/prompt (LLM-first).
 - The bridge is transport + logging only.
+ - Approval requests should be handled in OpenClaw (not posted into Matrix DMs).

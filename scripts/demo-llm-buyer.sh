@@ -3,9 +3,11 @@ set -euo pipefail
 
 npm run build
 
-mkdir -p logs
-: > logs/gossip.log
-: > logs/dm.log
+LOG_DIR="logs"
+mkdir -p "$LOG_DIR"
+for f in gossip.log dm.log listings.jsonl approvals.jsonl deals.jsonl; do
+  : > "$LOG_DIR/$f"
+done
 
 if ! curl -s "http://localhost:8008/_matrix/client/versions" >/dev/null; then
   if command -v docker >/dev/null; then
@@ -52,20 +54,21 @@ if ! node -e "const a=require('./config/agent_a.json'); const b=require('./confi
   node dist/agent.js setup --config-a config/agent_a.json --config-b config/agent_b.json
 fi
 
-node dist/agent.js bridge --config config/agent_b.json --session matrix-marketplace --room both &
+SESSION_ID="matrix-marketplace-$(date -u +%Y%m%dT%H%M%S)"
+node dist/agent.js bridge --config config/agent_b.json --session "$SESSION_ID" --room both &
 BRIDGE_PID=$!
 
 OPENCLAW_CMD="${OPENCLAW_CMD:-openclaw}"
 SENT_LISTING=0
 if command -v "$OPENCLAW_CMD" >/dev/null 2>&1; then
   echo "Pinging OpenClaw session..."
-  "$OPENCLAW_CMD" agent --session-id matrix-marketplace --message "Reply with PONG." || true
+  "$OPENCLAW_CMD" agent --session-id "$SESSION_ID" --message "Reply with PONG." || true
   echo "Pause 3s so you can confirm in OpenClaw UI..."
   sleep 3
-  "$OPENCLAW_CMD" agent --session-id matrix-marketplace --message "You are the buyer. You will receive prompts that start with 'GOSSIP MESSAGE' or 'DM MESSAGE'. Follow these rules: If you should create a listing, ask up to 3 clarifying questions first (condition, accessories, location/shipping). After you have enough detail, respond with one line in this format: GOSSIP: LISTING_CREATE {\"id\":\"lst_buyer_001\",\"type\":\"buy\",\"item\":\"Nintendo Switch\",\"price\":120,\"currency\":\"EUR\",\"condition\":\"good\",\"ship\":\"included\",\"location\":\"EU\",\"notes\":\"looking for good condition, full working\"}. If a gossip message is about selling a Nintendo handheld/switch, respond with one line 'DM: <message>' showing interest and asking key questions. If DM messages arrive, negotiate to 150 USD shipped with tracked signature; if the counterparty asks for more than 160 USD, respond with 'DM: APPROVAL_REQUEST price above budget: <price>'. After a Deal Summary, reply with 'DM: Confirmed'. If you should not respond, reply exactly 'SKIP'. Always output exactly one line in the required format." >/dev/null 2>&1 || true
+  "$OPENCLAW_CMD" agent --session-id "$SESSION_ID" --message "You are the buyer. You will receive prompts that start with 'GOSSIP MESSAGE' or 'DM MESSAGE'. Follow these rules: If you should create a listing, ask up to 3 clarifying questions first (condition, accessories, location/shipping). After you have enough detail, respond with one line in this format: GOSSIP: LISTING_CREATE {\"id\":\"lst_buyer_001\",\"type\":\"buy\",\"item\":\"Nintendo Switch\",\"price\":120,\"currency\":\"EUR\",\"condition\":\"good\",\"ship\":\"included\",\"location\":\"EU\",\"notes\":\"looking for good condition, full working\"}. If a gossip message is about selling a Nintendo handheld/switch, respond with one line 'DM: <message>' showing interest and asking key questions. If DM messages arrive, negotiate to 150 USD shipped with tracked signature; if the counterparty asks for more than 160 USD, respond with 'DM: Let me confirm and get back to you.'. After a Deal Summary, reply with 'DM: Confirmed'. If you should not respond, reply exactly 'SKIP'. Always output exactly one line in the required format." >/dev/null 2>&1 || true
 
   echo "Requesting buyer listing from OpenClaw..."
-  listing_reply="$("$OPENCLAW_CMD" agent --session-id matrix-marketplace --message "Create your BUY listing now. Respond with one line starting with 'GOSSIP:'." || true)"
+  listing_reply="$("$OPENCLAW_CMD" agent --session-id "$SESSION_ID" --message "Create your BUY listing now. Respond with one line starting with 'GOSSIP:'." || true)"
   listing_line="$(echo "$listing_reply" | tail -n 1 | tr -d '\r')"
   if echo "$listing_line" | rg -q "^GOSSIP:"; then
     listing_body="$(echo "$listing_line" | sed 's/^GOSSIP:[[:space:]]*//')"
@@ -85,9 +88,7 @@ if [ "$SENT_LISTING" -eq 0 ]; then
     'LISTING_CREATE {"id":"lst_buyer_fallback","type":"buy","item":"Nintendo Switch","price":120,"currency":"EUR","condition":"good","ship":"included","location":"EU"}' || true
 fi
 
-LOG_DIR="logs"
 DM_LOG="$LOG_DIR/dm.log"
-mkdir -p "$LOG_DIR"
 touch "$DM_LOG"
 
 wait_for_buyer_reply() {
@@ -105,6 +106,48 @@ wait_for_buyer_reply() {
     waited=$((waited + 1))
   done
   echo "Warning: no buyer reply detected within ${timeout}s."
+  return 1
+}
+
+prompt_buyer_opener() {
+  local reply
+  local line
+  local body
+  reply="$("$OPENCLAW_CMD" agent --session-id "$SESSION_ID" --message "Send the first DM to the seller (one line in format: DM: <message>). If you should not send, reply SKIP." || true)"
+  line="$(echo "$reply" | tail -n 1 | tr -d '\r')"
+  if echo "$line" | rg -q "^DM:"; then
+    body="$(echo "$line" | sed 's/^DM:[[:space:]]*//')"
+    node dist/agent.js send --config config/agent_b.json --room dm --text "$body" || true
+    return 0
+  fi
+  return 1
+}
+
+wait_for_deal_summary() {
+  local waited=0
+  local timeout=30
+  while [ "$waited" -lt "$timeout" ]; do
+    if tail -n 10 "$DM_LOG" | rg -q "Deal Summary:|DEAL_SUMMARY"; then
+      return 0
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+  echo "Warning: no deal summary detected within ${timeout}s."
+  return 1
+}
+
+wait_for_confirmed() {
+  local waited=0
+  local timeout=30
+  while [ "$waited" -lt "$timeout" ]; do
+    if tail -n 10 "$DM_LOG" | rg -q "^Confirmed$|^CONFIRMED$"; then
+      return 0
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+  echo "Warning: no Confirmed detected within ${timeout}s."
   return 1
 }
 
@@ -126,16 +169,6 @@ run_script_line_by_line() {
       continue
     fi
     node dist/agent.js send --config config/agent_a.json --room "$room" --text "$trimmed"
-    local ts
-    ts="$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")"
-    local room_id
-    if [ "$room" = "gossip" ]; then
-      room_id="$(node -e "const c=require('./config/agent_a.json'); console.log(c.gossipRoomId||'');")"
-      printf "%s %s %s %s\n" "$ts" "@agent_a:localhost" "$room_id" "$trimmed" >> "$LOG_DIR/gossip.log"
-    else
-      room_id="$(node -e "const c=require('./config/agent_a.json'); console.log(c.dmRoomId||'');")"
-      printf "%s %s %s %s\n" "$ts" "@agent_a:localhost" "$room_id" "$trimmed" >> "$LOG_DIR/dm.log"
-    fi
     if [ "$room" = "dm" ]; then
       wait_for_buyer_reply || true
     fi
@@ -145,7 +178,24 @@ run_script_line_by_line() {
 
 run_script_line_by_line gossip scripts/agent_a_gossip.script
 wait_for_buyer_reply || true
+
+if command -v "$OPENCLAW_CMD" >/dev/null 2>&1; then
+  if ! prompt_buyer_opener; then
+    node dist/agent.js send --config config/agent_b.json --room dm --text "Hi! I'm interested in your listing. Is it still available and in good condition?" || true
+  fi
+fi
 run_script_line_by_line dm scripts/agent_a_dm.script
+if ! rg -q "@agent_a:localhost" "$DM_LOG"; then
+  echo "Warning: no seller DM detected; sending fallback seller reply."
+  node dist/agent.js send --config config/agent_a.json --room dm --text "Yes, still available. It comes with the charger and original case. Any questions?" || true
+fi
+
+if wait_for_deal_summary; then
+  wait_for_confirmed || true
+  if ! tail -n 10 "$DM_LOG" | rg -q "^Confirmed$|^CONFIRMED$"; then
+    node dist/agent.js send --config config/agent_b.json --room dm --text "Confirmed" || true
+  fi
+fi
 
 sleep 2
 kill "$BRIDGE_PID" 2>/dev/null || true

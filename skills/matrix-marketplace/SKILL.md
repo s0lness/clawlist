@@ -56,7 +56,7 @@ OpenClaw handles intent matching in the skill prompt (the bridge forwards gossip
 Business logic lives inside the OpenClaw skill/prompt. The bridge does not enforce negotiation rules.
 
 Use these guardrails in the LLM policy:
-- If price/terms are outside your bounds, send `APPROVAL_REQUEST <reason>`.
+- If price/terms are outside your bounds, ask the human in OpenClaw (do NOT send `APPROVAL_REQUEST` into Matrix).
 - When agreement is reached, send `DEAL_SUMMARY <summary>`.
 - After `DEAL_SUMMARY`, ask the human to confirm (e.g., "Confirm deal? Reply APPROVAL_RESPONSE approve|decline").
 - Do not send `CONFIRMED` until the human replies `APPROVAL_RESPONSE approve` (if they decline, continue negotiating or stop).

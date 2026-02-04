@@ -1,4 +1,4 @@
-# Agent Commerce Roadmap + MVP Plan
+# Clawlist Roadmap + MVP Plan
 
 This doc captures the concrete implementation roadmap plus a tight MVP plan for a two-human demo (buyer + seller OpenClaw).
 
@@ -168,7 +168,7 @@ node dist/agent.js poll --config config/agent_b.json --room gossip --interval 30
 
 Cron example (every 5 minutes):
 ```
-*/5 * * * * cd /path/to/agent-commerce && node dist/agent.js poll --config config/agent_b.json --room gossip
+*/5 * * * * cd /path/to/clawlist && node dist/agent.js poll --config config/agent_b.json --room gossip
 ```
 
 ### Option B: Always-on Bridge
