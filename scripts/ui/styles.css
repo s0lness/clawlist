@@ -122,6 +122,7 @@ body {
   border-radius: 10px;
   margin: 6px;
   font-size: 13px;
+  user-select: text;
 }
 
 .offer {
@@ -179,6 +180,7 @@ body {
   font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 13px;
   line-height: 1.5;
+  user-select: text;
 }
 
 .msg.from-a .bubble {

@@ -35,17 +35,21 @@
 
       function parseLog(text) {
         const lines = text.split("\n").filter(Boolean);
-        return lines.map((line) => {
+        return lines.map((line, idx) => {
           const first = line.indexOf(" ");
           const second = line.indexOf(" ", first + 1);
           const third = line.indexOf(" ", second + 1);
           if (first === -1 || second === -1 || third === -1) {
-            return { ts: "", sender: "unknown", body: line };
+            return { ts: "", tsMs: 0, sender: "unknown", body: line, idx };
           }
+          const ts = line.slice(0, first);
+          const tsMs = Date.parse(ts) || 0;
           return {
-            ts: line.slice(0, first),
+            ts,
+            tsMs,
             sender: line.slice(first + 1, second),
             body: line.slice(third + 1),
+            idx,
           };
         });
       }
@@ -57,6 +61,7 @@
       }
 
       function renderChat(el, messages) {
+        const wasAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 24;
         el.innerHTML = "";
         for (const msg of messages) {
           const row = document.createElement("div");
@@ -74,7 +79,7 @@
           row.appendChild(bubble);
           el.appendChild(row);
         }
-        if (el.lastElementChild) {
+        if (wasAtBottom && el.lastElementChild) {
           el.lastElementChild.scrollIntoView({ block: "end" });
         }
       }
@@ -131,11 +136,17 @@
 
       async function fetchLogs() {
         try {
+          const selection = window.getSelection && window.getSelection();
+          if (selection && selection.type === "Range") {
+            statusEl.textContent = "Paused (text selected)";
+            return;
+          }
           const res = await fetch("/logs");
           const data = await res.json();
-          const gossipMessages = parseLog(data.gossip || "");
+          const gossipMessages = parseLog(data.gossip || "").sort((a, b) => a.tsMs - b.tsMs || a.idx - b.idx);
           renderBoard(gossipEl, document.getElementById("gossipSelected"), gossipMessages);
-          renderChat(dmEl, parseLog(data.dm || ""));
+          const dmMessages = parseLog(data.dm || "").sort((a, b) => a.tsMs - b.tsMs || a.idx - b.idx);
+          renderChat(dmEl, dmMessages);
           statusEl.textContent = "Live";
         } catch (e) {
           statusEl.textContent = "Offline";
