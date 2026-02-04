@@ -7,10 +7,16 @@
     "build": "tsc -p tsconfig.json",
     "agent": "node dist/agent.js",
     "demo": "npm run build && node scripts/demo.js",
+    "demo:docker": "bash scripts/demo-docker.sh",
+    "demo:llm-buyer": "bash scripts/demo-llm-buyer.sh",
+    "demo:llm-seller": "bash scripts/demo-llm-seller.sh",
+    "demo:all": "bash scripts/reset-all.sh",
     "openclaw:bridge": "node dist/agent.js bridge --config config/agent_b.json --session matrix-marketplace",
     "openclaw:start": "bash scripts/openclaw-start.sh",
     "openclaw:check": "bash scripts/openclaw-check.sh",
-    "intent:set": "bash scripts/intent-set.sh"
+    "intent:set": "bash scripts/intent-set.sh",
+    "start-all": "bash scripts/start-all.sh",
+    "reset-all": "bash scripts/reset-all.sh"
   },
   "dependencies": {
     "@openai/codex-sdk": "latest",

@@ -57,7 +57,8 @@ node dist/agent.js run --config config/agent_b.json
 ## 4) Scripted demo (repeatable)
 In two terminals, run:
 ```bash
-node dist/agent.js scripted --config config/agent_a.json --room gossip --script scripts/agent_a.script
+node dist/agent.js scripted --config config/agent_a.json --room gossip --script scripts/agent_a_gossip.script
+node dist/agent.js scripted --config config/agent_a.json --room dm --script scripts/agent_a_dm.script
 node dist/agent.js scripted --config config/agent_b.json --room dm --script scripts/agent_b.script
 ```
 

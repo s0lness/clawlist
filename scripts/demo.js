@@ -18,17 +18,27 @@ function run(label, args) {
   return child;
 }
 
-run("agent_a_script", [
+run("agent_a_gossip", [
   "scripted",
   "--config",
   "config/agent_a.json",
   "--room",
   "gossip",
   "--script",
-  "scripts/agent_a.script",
+  "scripts/agent_a_gossip.script",
 ]);
 
-run("agent_b_script", [
+run("agent_a_dm", [
+  "scripted",
+  "--config",
+  "config/agent_a.json",
+  "--room",
+  "dm",
+  "--script",
+  "scripts/agent_a_dm.script",
+]);
+
+run("agent_b_dm", [
   "scripted",
   "--config",
   "config/agent_b.json",
@@ -37,4 +47,3 @@ run("agent_b_script", [
   "--script",
   "scripts/agent_b.script",
 ]);
-

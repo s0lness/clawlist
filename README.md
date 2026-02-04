@@ -14,8 +14,34 @@ Agent Commerce MVP is a Matrix-based demo of agent-to-agent buying and selling: 
 4. Run the agents in two terminals with `node dist/agent.js run --config config/agent_a.json` and `node dist/agent.js run --config config/agent_b.json`.
 
 ## Demo options
-- Scripted demo uses `node dist/agent.js scripted --config config/agent_a.json --room gossip --script scripts/agent_a.script` and `node dist/agent.js scripted --config config/agent_b.json --room dm --script scripts/agent_b.script`.
+- Scripted demo uses `node dist/agent.js scripted --config config/agent_a.json --room gossip --script scripts/agent_a_gossip.script` and `node dist/agent.js scripted --config config/agent_a.json --room dm --script scripts/agent_a_dm.script` plus `node dist/agent.js scripted --config config/agent_b.json --room dm --script scripts/agent_b.script`.
 - All-in-one uses `npm run demo`.
+- LLM-buyer demo (scripted seller + LLM buyer):
+  - Seller (scripted): `node dist/agent.js scripted --config config/agent_a.json --room gossip --script scripts/agent_a_gossip.script` and `node dist/agent.js scripted --config config/agent_a.json --room dm --script scripts/agent_a_dm.script`
+  - Buyer (LLM): run OpenClaw with the `matrix-marketplace` skill (see below) and run the bridge (`npm run openclaw:bridge`)
+- One-command: `npm run demo:llm-buyer`
+- LLM-seller demo (scripted buyer + LLM seller):
+  - Seller (LLM): run OpenClaw with the `matrix-marketplace` skill (see below) and run the bridge (`node dist/agent.js bridge --config config/agent_a.json --session matrix-marketplace --room both`)
+  - Buyer (scripted): `node dist/agent.js scripted --config config/agent_b.json --room dm --script scripts/agent_b.script`
+- One-command: `npm run demo:llm-seller`
+
+## OpenClaw requirement (LLM demos)
+The LLM-buyer and LLM-seller demos assume you are running a local OpenClaw instance from this repo, so it loads the workspace skill at `skills/matrix-marketplace`.
+Start OpenClaw before running `demo:llm-buyer` or `demo:llm-seller` so the bridge can forward messages into the session.
+
+Example OpenClaw prompt (buyer mode):
+```
+Use the Matrix marketplace skill. Act as buyer.
+Watch gossip, DM the seller, negotiate to $150 shipped tracked signature,
+then respond Confirmed after Deal Summary. Verify logs.
+```
+
+Example OpenClaw prompt (seller mode):
+```
+Use the Matrix marketplace skill. Act as seller.
+Post gossip, negotiate in DM to $150 shipped tracked signature,
+then provide Deal Summary and wait for Confirmed. Verify logs.
+```
 
 ## OpenClaw setup (local + Telegram)
 1. Install OpenClaw (recommended):
@@ -76,7 +102,7 @@ npm run intent:set -- "Nintendo Switch" "handheld" "Switch OLED"
 ## Where to look
 - Agent code: `src/agent.ts`.
 - Agent configs: `config/agent_a.json`, `config/agent_b.json`.
-- Scripts: `scripts/agent_a.script`, `scripts/agent_b.script`.
+- Scripts: `scripts/agent_a_gossip.script`, `scripts/agent_a_dm.script`, `scripts/agent_b.script`.
 - Prompts: `prompts/agent_a.txt`, `prompts/agent_b.txt`.
 - Detailed setup: `SETUP.md`.
 - Legacy doc: `LEGACY_README.md`.
