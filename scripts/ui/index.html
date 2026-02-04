@@ -23,6 +23,8 @@
         <div id="listings" class="listings"></div>
         <div class="subhead">Deals</div>
         <div id="deals" class="deals"></div>
+        <div class="subhead">Matches</div>
+        <div id="matches" class="matches"></div>
       </section>
       <section class="panel">
         <h2>Gossip Board</h2>
@@ -42,6 +44,7 @@
       const rolesEl = document.getElementById("roles");
       const listingsEl = document.getElementById("listings");
       const dealsEl = document.getElementById("deals");
+      const matchesEl = document.getElementById("matches");
 
       function parseLog(text) {
         const lines = text.split("\n").filter(Boolean);
@@ -104,7 +107,7 @@
           return;
         }
         const latest = listings
-          .filter((l) => l.type === "LISTING_CREATE" && l.data)
+          .filter((l) => (l.type === "LISTING_CREATE" || l.type === "INTENT") && l.data)
           .slice(-50)
           .reverse();
         const seen = new Set();
@@ -125,18 +128,22 @@
         }
         for (const entry of unique.slice(0, 10)) {
           const card = document.createElement("div");
-          const listingType = String(entry.data.type || "").toLowerCase();
+          const listingType = String(entry.data.type || entry.data.side || "").toLowerCase();
           card.className = `listing-card ${listingType === "buy" ? "buy" : listingType === "sell" ? "sell" : ""}`;
           const header = document.createElement("div");
           header.className = "listing-header";
-          const label = listingType === "buy" ? "Want to Buy" : listingType === "sell" ? "Want to Sell" : "Listing";
-          header.textContent = `${label} · ${entry.data.item}`;
+          const label = listingType === "buy" ? "Want to Buy" : listingType === "sell" ? "Want to Sell" : "Intent";
+          const item = entry.data.item || entry.data.detail || entry.data.category || "Unspecified";
+          header.textContent = `${label} · ${item}`;
           const badge = document.createElement("span");
           badge.className = `listing-badge ${listingType === "buy" ? "buy" : listingType === "sell" ? "sell" : ""}`;
-          badge.textContent = listingType === "buy" ? "Buyer Intent" : listingType === "sell" ? "Seller Listing" : "Listing";
+          badge.textContent = listingType === "buy" ? "Buyer Intent" : listingType === "sell" ? "Seller Intent" : "Intent";
           const meta = document.createElement("div");
           meta.className = "listing-meta";
-          meta.textContent = `${entry.data.price} ${entry.data.currency} · ${entry.data.condition || "condition?"} · ${entry.data.ship || "ship?"}`;
+          const price = entry.data.price ? `${entry.data.price} ${entry.data.currency || ""}`.trim() : "price?";
+          const condition = entry.data.condition || "condition?";
+          const ship = entry.data.ship || "ship?";
+          meta.textContent = `${price} · ${condition} · ${ship}`;
           const id = document.createElement("div");
           id.className = "listing-id";
           id.textContent = `id: ${entry.data.id}`;
@@ -315,16 +322,58 @@
         }
       }
 
+      function renderMatches(el, matches) {
+        el.innerHTML = "";
+        if (!matches.length) {
+          const empty = document.createElement("div");
+          empty.className = "match-empty";
+          empty.textContent = "No matches yet.";
+          el.appendChild(empty);
+          return;
+        }
+        const latest = matches.slice(-10).reverse();
+        for (const entry of latest) {
+          const row = document.createElement("div");
+          row.className = "match-row";
+          const label = document.createElement("div");
+          label.className = "match-label";
+          label.textContent = "MATCH FOUND";
+          const body = document.createElement("div");
+          body.className = "match-body";
+          body.textContent = entry.body || entry.raw || "";
+          const meta = document.createElement("div");
+          meta.className = "match-meta";
+          meta.textContent = `${entry.sender}`;
+          row.appendChild(label);
+          row.appendChild(body);
+          row.appendChild(meta);
+          el.appendChild(row);
+        }
+      }
+
+      async function fetchMatches() {
+        try {
+          const res = await fetch("/matches");
+          const data = await res.json();
+          const matches = Array.isArray(data.matches) ? data.matches : [];
+          renderMatches(matchesEl, matches);
+        } catch (e) {
+          renderMatches(matchesEl, []);
+        }
+      }
+
       gossipEl.dataset.forceBottom = "1";
       dmEl.dataset.forceBottom = "1";
       fetchLogs();
       fetchRoles();
       fetchListings();
       fetchDeals();
+      fetchMatches();
       setInterval(fetchLogs, 1000);
       setInterval(fetchRoles, 5000);
       setInterval(fetchListings, 3000);
       setInterval(fetchDeals, 3000);
+      setInterval(fetchMatches, 3000);
 
       document.getElementById("resetBtn").addEventListener("click", async () => {
         statusEl.textContent = "Resetting...";

@@ -45,6 +45,42 @@ function readJsonLines(file) {
   }
 }
 
+function parseMatrixDmMatches(lines) {
+  const matches = [];
+  for (const line of lines.split(/\r?\n/)) {
+    if (!line || !line.includes("MATCH_FOUND")) continue;
+    const first = line.indexOf(" ");
+    const second = line.indexOf(" ", first + 1);
+    const third = line.indexOf(" ", second + 1);
+    if (first === -1 || second === -1 || third === -1) continue;
+    const ts = line.slice(0, first);
+    const sender = line.slice(first + 1, second);
+    const body = line.slice(third + 1);
+    matches.push({ ts, sender, body, source: "matrix" });
+  }
+  return matches;
+}
+
+function parseGatewayDmMatches(lines) {
+  const matches = [];
+  for (const line of lines.split(/\r?\n/)) {
+    if (!line || !line.includes("MATCH_FOUND")) continue;
+    const first = line.indexOf(" ");
+    if (first === -1) continue;
+    const ts = line.slice(0, first);
+    const rest = line.slice(first + 1);
+    const arrowIdx = rest.indexOf(" -> ");
+    if (arrowIdx === -1) continue;
+    const sender = rest.slice(0, arrowIdx).trim();
+    const rest2 = rest.slice(arrowIdx + 4);
+    const second = rest2.indexOf(" ");
+    if (second === -1) continue;
+    const body = rest2.slice(second + 1);
+    matches.push({ ts, sender, body, source: "gateway" });
+  }
+  return matches;
+}
+
 ensureLogs();
 
 function handler(req, res) {
@@ -88,6 +124,18 @@ function handler(req, res) {
     const deals = readJsonLines(path.join(LOG_DIR, "deals.jsonl"));
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify({ deals }));
+    return;
+  }
+
+  if (req.url === "/matches") {
+    const matrixDm = readLog(path.join(LOG_DIR, "dm.log"));
+    const gatewayDm = readLog(path.join(LOG_DIR, "gateway-dm.log"));
+    const matches = [
+      ...parseMatrixDmMatches(matrixDm),
+      ...parseGatewayDmMatches(gatewayDm),
+    ].sort((a, b) => (a.ts || "").localeCompare(b.ts || ""));
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ matches }));
     return;
   }
 

@@ -1,8 +1,8 @@
 # Matrix Marketplace Protocol (Demo)
 
 ## Message Flow
-- Gossip room: public intent signals.
-- DM room: private negotiation.
+- Gossip room: public intent signals (detail chosen by the agent).
+- DM room: private negotiation or direct agreement.
 - Logs: `logs/gossip.log`, `logs/dm.log`, `logs/listings.jsonl`, `logs/approvals.jsonl`.
 
 ## Key Commands
@@ -18,19 +18,18 @@
 ## Logs
 - `logs/gossip.log`
 - `logs/dm.log`
-- `logs/listings.jsonl` (structured LISTING_CREATE entries)
-- `logs/approvals.jsonl` (APPROVAL_REQUEST/APPROVAL_RESPONSE)
+- `logs/listings.jsonl` (structured INTENT entries when present)
+- `logs/approvals.jsonl` (APPROVAL_REQUEST/APPROVAL_RESPONSE, optional)
 - `logs/deals.jsonl` (DEAL_SUMMARY/CONFIRMED)
 
-## Approval messages
+## Approval messages (optional)
 - `APPROVAL_REQUEST <reason>`
 - `APPROVAL_RESPONSE approve|decline <optional note>`
 
 ## Deal messages
-- `Deal Summary: ...` or `DEAL_SUMMARY ...`
-- Human responds with `APPROVAL_RESPONSE approve|decline` to confirm or reject.
-- Agent sends `CONFIRMED` after approval.
-- Recommended: prompt the human explicitly after the summary (e.g., "Confirm deal? Reply APPROVAL_RESPONSE approve|decline").
+- `Deal Summary: ...` or `DEAL_SUMMARY ...` (if your policy requires it)
+- If approval is required, the human responds with `APPROVAL_RESPONSE approve|decline`.
+- Agent sends `CONFIRMED` after required approvals.
 
 ## Guardrails Location
 - Guardrails are enforced in the OpenClaw skill/prompt (LLM-first).

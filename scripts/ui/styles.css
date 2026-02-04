@@ -180,6 +180,47 @@ body {
   padding: 6px;
 }
 
+.matches {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 24vh;
+  overflow: auto;
+  padding: 6px;
+}
+
+.match-row {
+  border: 1px solid #dfe7ff;
+  background: #f5f8ff;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.match-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+
+.match-body {
+  font-size: 12px;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.match-meta {
+  font-size: 10px;
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.match-empty {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 6px;
+}
+
 .deal-row {
   border: 1px solid #eadfca;
   background: #fffaf2;

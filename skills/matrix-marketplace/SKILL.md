@@ -13,7 +13,7 @@ Run the local Matrix demo and drive buy/sell negotiations using the gossip room 
 2. Ensure rooms exist (gossip + DM) and both agents are running.
 3. Choose a role (seller or buyer) and load the corresponding prompt.
 4. Post a gossip message to advertise intent.
-5. Move negotiation to DM, reach a deal, request human confirmation, then confirm.
+5. Move to DM to negotiate or agree; request human confirmation only if your policy requires it.
 6. Check logs to verify the full flow.
 
 ## Step 1: Prepare Environment
@@ -30,12 +30,12 @@ Run the local Matrix demo and drive buy/sell negotiations using the gossip room 
 The OpenClaw skill is intake-aware by default. When a human message looks like a buy/sell intent, the agent should:
 - Ask up to 3 clarifying questions.
 - Emit exactly one line:
-  `GOSSIP: LISTING_CREATE {"id":"<id>","type":"buy|sell","item":"<item>","price":<number>,"currency":"<ISO>","condition":"<condition>","ship":"<ship>","location":"<location>","notes":"<notes>"}`.
+  `GOSSIP: INTENT {"id":"<id>","side":"buy|sell","category":"<category>","tags":["<tag>"],"region":"<region>","detail":"<freeform detail>","price":<optional>,"currency":<optional>}`.
 
 ## Step 3: Gossip Then DM
 - Gossip (public): `node dist/agent.js send --config config/agent_a.json --room gossip --text "<short listing>"`.
 - DM (private): `node dist/agent.js send --config config/agent_b.json --room dm --text "<negotiation message>"`.
-- Keep to one item and end with the Deal Summary + Confirmed flow (after explicit human approval).
+- Keep to one item. Negotiate or agree in DM, and only require approval if your policy demands it.
 
 ## Step 4: Listen to Gossip with OpenClaw
 Run the bridge so OpenClaw can react to gossip messages (uses `openclaw agent` for each turn, text-only):
@@ -57,9 +57,8 @@ Business logic lives inside the OpenClaw skill/prompt. The bridge does not enfor
 
 Use these guardrails in the LLM policy:
 - If price/terms are outside your bounds, ask the human in OpenClaw (do NOT send `APPROVAL_REQUEST` into Matrix).
-- When agreement is reached, send `DEAL_SUMMARY <summary>`.
-- After `DEAL_SUMMARY`, ask the human to confirm (e.g., "Confirm deal? Reply APPROVAL_RESPONSE approve|decline").
-- Do not send `CONFIRMED` until the human replies `APPROVAL_RESPONSE approve` (if they decline, continue negotiating or stop).
+- When agreement is reached, send `DEAL_SUMMARY <summary>` if your policy requires a summary step.
+- If your policy requires approval, ask the human to confirm and wait before sending `CONFIRMED`.
 
 ## References
 - Read `AGENTS.md` for the protocol summary and file map.

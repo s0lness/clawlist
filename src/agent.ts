@@ -30,7 +30,7 @@ type AgentConfig = {
   openclawCmd?: string;
 };
 
-type Command = "send" | "setup" | "scripted" | "auth" | "bridge" | "intake" | "approve";
+type Command = "send" | "setup" | "scripted" | "auth" | "bridge" | "intake" | "approve" | "gateway";
 function getArg(args: string[], name: string): string | null {
   const idx = args.indexOf(`--${name}`);
   if (idx === -1) return null;
@@ -93,13 +93,98 @@ function appendJsonLine(logPath: string, obj: Record<string, unknown>) {
   fs.appendFileSync(logPath, JSON.stringify(obj) + "\n");
 }
 
+function httpRequest(
+  url: string,
+  method: string,
+  headers: Record<string, string>,
+  body?: string
+): Promise<{ status: number; text: string }> {
+  return new Promise((resolve, reject) => {
+    const target = new URL(url);
+    const client = target.protocol === "https:" ? require("https") : require("http");
+    const req = client.request(
+      {
+        method,
+        hostname: target.hostname,
+        port: target.port,
+        path: target.pathname + target.search,
+        headers,
+      },
+      (res: any) => {
+        let data = "";
+        res.on("data", (chunk: Buffer) => {
+          data += chunk.toString("utf8");
+        });
+        res.on("end", () => {
+          resolve({ status: res.statusCode || 0, text: data });
+        });
+      }
+    );
+    req.on("error", reject);
+    if (body) req.write(body);
+    req.end();
+  });
+}
+
+function startSse(
+  url: string,
+  headers: Record<string, string>,
+  onEvent: (event: string, data: any) => void
+) {
+  const target = new URL(url);
+  const client = target.protocol === "https:" ? require("https") : require("http");
+  const req = client.request(
+    {
+      method: "GET",
+      hostname: target.hostname,
+      port: target.port,
+      path: target.pathname + target.search,
+      headers,
+    },
+    (res: any) => {
+      res.setEncoding("utf8");
+      let buffer = "";
+      res.on("data", (chunk: string) => {
+        buffer += chunk;
+        let idx;
+        while ((idx = buffer.indexOf("\n\n")) !== -1) {
+          const raw = buffer.slice(0, idx);
+          buffer = buffer.slice(idx + 2);
+          const lines = raw.split(/\r?\n/);
+          let eventName = "message";
+          let dataLine = "";
+          for (const line of lines) {
+            if (line.startsWith("event:")) {
+              eventName = line.slice("event:".length).trim();
+            } else if (line.startsWith("data:")) {
+              dataLine += line.slice("data:".length).trim();
+            }
+          }
+          if (!dataLine) continue;
+          try {
+            const payload = JSON.parse(dataLine);
+            onEvent(eventName, payload);
+          } catch (_err) {
+            // Ignore malformed events.
+          }
+        }
+      });
+    }
+  );
+  req.on("error", () => {});
+  req.end();
+}
+
 function parseListingMessage(body: string): { type: string; data: any } | null {
-  const prefix = "LISTING_CREATE ";
-  if (!body.startsWith(prefix)) return null;
-  const raw = body.slice(prefix.length).trim();
+  const trimmed = body.trim();
+  const prefixes = ["INTENT ", "LISTING_CREATE "];
+  const prefix = prefixes.find((p) => trimmed.startsWith(p));
+  if (!prefix) return null;
+  const raw = trimmed.slice(prefix.length).trim();
   if (!raw) return null;
   const data = JSON.parse(raw);
-  return { type: "LISTING_CREATE", data };
+  const type = prefix.startsWith("INTENT") ? "INTENT" : "LISTING_CREATE";
+  return { type, data };
 }
 
 function buildListingFromAnswers(
@@ -172,7 +257,7 @@ function logListingIfPresent(
       direction: payload.direction,
       sender: payload.sender,
       roomId: payload.roomId,
-      type: "LISTING_CREATE",
+      type: "INTENT",
       error: String(err?.message ?? err),
       raw: payload.body,
     });
@@ -256,7 +341,7 @@ async function runIntake(
     location,
     notes
   );
-  const text = `LISTING_CREATE ${JSON.stringify(listing)}`;
+  const text = `INTENT ${JSON.stringify(listing)}`;
   await sendMessage(configPath, roomKey, text);
 }
 
@@ -617,11 +702,115 @@ async function runBridge(
   );
 }
 
+async function runGatewayBridge(
+  gatewayUrl: string,
+  accessToken: string,
+  agentId: string,
+  sessionId: string
+) {
+  const openclawCmd = process.env.OPENCLAW_CMD ?? "openclaw";
+  const logDir = process.env.GATEWAY_LOG_DIR ?? "logs";
+  ensureLogDir(logDir);
+
+  const gossipStream = new URL("/gossip/stream", gatewayUrl).toString();
+  const dmStream = new URL("/dm/stream", gatewayUrl).toString();
+  const gossipPost = new URL("/gossip", gatewayUrl).toString();
+  const dmPost = new URL("/dm", gatewayUrl).toString();
+
+  const headers = { Authorization: `Bearer ${accessToken}` };
+  let busy = false;
+
+  function handleInbound(kind: "gossip" | "dm", payload: any) {
+    if (payload?.agent_id && payload.agent_id === agentId) return;
+    if (payload?.from_agent && payload.from_agent === agentId) return;
+    if (busy) return;
+    const sender = payload?.agent_id || payload?.from_agent || "unknown";
+    const body = String(payload?.body || "");
+
+    busy = true;
+    const prompt = `${kind.toUpperCase()} MESSAGE from ${sender}: ${body}\nReply with exactly one line:\n- DM: <agent_id> <message>\n- GOSSIP: <message>\n- SKIP`;
+
+    const reply = new Promise<string>((resolve, reject) => {
+      const args = ["agent", "--message", prompt];
+      if (sessionId) args.splice(1, 0, "--session-id", sessionId);
+      const child = spawn(openclawCmd, args, { stdio: ["ignore", "pipe", "pipe"] });
+      let output = "";
+      let errOut = "";
+      child.stdout.on("data", (chunk) => {
+        output += chunk.toString("utf8");
+      });
+      child.stderr.on("data", (chunk) => {
+        errOut += chunk.toString("utf8");
+      });
+      child.on("exit", (code) => {
+        if (code === 0) {
+          const lines = output
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter(Boolean);
+          resolve(lines[lines.length - 1] ?? "");
+        } else {
+          reject(new Error(`openclaw agent exited with code ${code ?? "unknown"}: ${errOut}`));
+        }
+      });
+    });
+
+    reply
+      .then(async (line) => {
+        if (!line || line.toUpperCase() === "SKIP") return;
+        const prefix = line.split(":")[0]?.toUpperCase();
+        const message = line.includes(":") ? line.slice(line.indexOf(":") + 1).trim() : "";
+        if (!message) return;
+
+        if (prefix === "GOSSIP") {
+          await httpRequest(
+            gossipPost,
+            "POST",
+            { ...headers, "Content-Type": "application/json" },
+            JSON.stringify({ body: message })
+          );
+          appendLog(path.join(logDir, "gateway-bridge.log"), `${new Date().toISOString()} OUT GOSSIP ${message}\n`);
+        } else if (prefix === "DM") {
+          const [toAgent, ...rest] = message.split(" ");
+          const dmBody = rest.join(" ").trim();
+          if (!toAgent || !dmBody) return;
+          await httpRequest(
+            dmPost,
+            "POST",
+            { ...headers, "Content-Type": "application/json" },
+            JSON.stringify({ to_agent: toAgent, body: dmBody })
+          );
+          appendLog(
+            path.join(logDir, "gateway-bridge.log"),
+            `${new Date().toISOString()} OUT DM to=${toAgent} ${dmBody}\n`
+          );
+        }
+      })
+      .catch((err) => {
+        console.error("Gateway bridge failed:", err);
+      })
+      .finally(() => {
+        busy = false;
+      });
+  }
+
+  startSse(gossipStream, headers, (event, payload) => {
+    if (event === "gossip") handleInbound("gossip", payload);
+  });
+  startSse(dmStream, headers, (event, payload) => {
+    if (event === "dm") handleInbound("dm", payload);
+  });
+
+  console.log(
+    `Gateway bridge running (agent=${agentId}) -> OpenClaw session ${sessionId} @ ${gatewayUrl}`
+  );
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const cmd = args[0] as Command | undefined;
   if (!cmd) {
-    throw new Error("Command required: send | setup | scripted | auth | bridge");
+    throw new Error("Command required: send | setup | scripted | auth | bridge | gateway");
   }
 
   if (cmd === "send") {
@@ -709,6 +898,18 @@ async function main() {
       throw new Error("--decision must be approve or decline");
     }
     await sendApproval(configPath, room, decision, note);
+    return;
+  }
+
+  if (cmd === "gateway") {
+    const url = getArg(args, "url");
+    const token = getArg(args, "token");
+    const agentId = getArg(args, "agent-id");
+    const sessionId = getArg(args, "session") ?? "gateway-bridge";
+    if (!url || !token || !agentId) {
+      throw new Error("gateway requires --url, --token, and --agent-id");
+    }
+    await runGatewayBridge(url, token, agentId, sessionId);
     return;
   }
 
