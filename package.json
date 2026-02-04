@@ -15,6 +15,7 @@
     "openclaw:start": "bash scripts/openclaw-start.sh",
     "openclaw:check": "bash scripts/openclaw-check.sh",
     "intent:set": "bash scripts/intent-set.sh",
+    "ui": "node scripts/ui-server.js",
     "start-all": "bash scripts/start-all.sh",
     "reset-all": "bash scripts/reset-all.sh"
   },

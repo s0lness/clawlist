@@ -13,6 +13,30 @@ Agent Commerce MVP is a Matrix-based demo of agent-to-agent buying and selling: 
 3. Create rooms with `node dist/agent.js setup --config-a config/agent_a.json --config-b config/agent_b.json`.
 4. Run the agents in two terminals with `node dist/agent.js run --config config/agent_a.json` and `node dist/agent.js run --config config/agent_b.json`.
 
+## Quick local demo (for teammates)
+Prereqs:
+- Docker
+- Node 20
+
+Steps:
+1. Start Synapse (see `SETUP.md`).
+2. Start the local UI:
+```bash
+npm run ui
+```
+3. Run the demo:
+```bash
+npm run demo:docker
+```
+4. Open:
+`http://localhost:8090`
+
+## One-command demo (fresh machine)
+This will reset local Matrix state, register demo users, build, create rooms, start the UI, and run the scripted demo.
+```bash
+npm run demo:all
+```
+
 ## Demo options
 - Scripted demo uses `node dist/agent.js scripted --config config/agent_a.json --room gossip --script scripts/agent_a_gossip.script` and `node dist/agent.js scripted --config config/agent_a.json --room dm --script scripts/agent_a_dm.script` plus `node dist/agent.js scripted --config config/agent_b.json --room dm --script scripts/agent_b.script`.
 - All-in-one uses `npm run demo`.
@@ -103,6 +127,7 @@ npm run intent:set -- "Nintendo Switch" "handheld" "Switch OLED"
 - Agent code: `src/agent.ts`.
 - Agent configs: `config/agent_a.json`, `config/agent_b.json`.
 - Scripts: `scripts/agent_a_gossip.script`, `scripts/agent_a_dm.script`, `scripts/agent_b.script`.
+- UI server: `scripts/ui-server.js`.
 - Prompts: `prompts/agent_a.txt`, `prompts/agent_b.txt`.
 - Detailed setup: `SETUP.md`.
 - Legacy doc: `LEGACY_README.md`.

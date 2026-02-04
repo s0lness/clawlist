@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Agent Commerce MVP</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">Agent Commerce MVP</div>
+      <div class="actions">
+        <button id="resetBtn" class="reset">Reset Logs + Rerun</button>
+        <div class="hint">Full wipe: run <code>npm run reset-all</code></div>
+        <div class="status" id="status">Connecting...</div>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="panel">
+        <h2>Gossip Board</h2>
+        <div id="gossipSelected" class="selected"></div>
+        <div id="gossip" class="board"></div>
+      </section>
+      <section class="panel">
+        <h2>DM</h2>
+        <div id="dm" class="chat"></div>
+      </section>
+    </main>
+
+    <script>
+      const statusEl = document.getElementById("status");
+      const gossipEl = document.getElementById("gossip");
+      const dmEl = document.getElementById("dm");
+
+      function parseLog(text) {
+        const lines = text.split("\n").filter(Boolean);
+        return lines.map((line) => {
+          const first = line.indexOf(" ");
+          const second = line.indexOf(" ", first + 1);
+          const third = line.indexOf(" ", second + 1);
+          if (first === -1 || second === -1 || third === -1) {
+            return { ts: "", sender: "unknown", body: line };
+          }
+          return {
+            ts: line.slice(0, first),
+            sender: line.slice(first + 1, second),
+            body: line.slice(third + 1),
+          };
+        });
+      }
+
+      function senderClass(sender) {
+        if (sender.includes("agent_a")) return "from-a";
+        if (sender.includes("agent_b")) return "from-b";
+        return "from-other";
+      }
+
+      function renderChat(el, messages) {
+        el.innerHTML = "";
+        for (const msg of messages) {
+          const row = document.createElement("div");
+          row.className = `msg ${senderClass(msg.sender)}`;
+
+          const meta = document.createElement("div");
+          meta.className = "meta";
+          meta.textContent = `${msg.sender} · ${msg.ts}`;
+
+          const bubble = document.createElement("div");
+          bubble.className = "bubble";
+          bubble.textContent = msg.body;
+
+          row.appendChild(meta);
+          row.appendChild(bubble);
+          el.appendChild(row);
+        }
+        if (el.lastElementChild) {
+          el.lastElementChild.scrollIntoView({ block: "end" });
+        }
+      }
+
+      function renderBoard(listEl, selectedEl, messages) {
+        listEl.innerHTML = "";
+        if (messages.length === 0) {
+          selectedEl.textContent = "No gossip yet.";
+          return;
+        }
+
+        let selectedIndex = Number(listEl.dataset.selectedIndex || "0");
+        const autoFollow = listEl.dataset.autoFollow === "1";
+        if (Number.isNaN(selectedIndex) || selectedIndex < 0) selectedIndex = 0;
+        if (autoFollow || selectedIndex >= messages.length) {
+          selectedIndex = messages.length - 1;
+          listEl.dataset.selectedIndex = String(selectedIndex);
+        }
+
+        const selected = messages[selectedIndex];
+        selectedEl.textContent = `${selected.sender}: ${selected.body}`;
+
+        messages.forEach((msg, idx) => {
+          const card = document.createElement("button");
+          card.className = "offer";
+          card.type = "button";
+          card.dataset.index = String(idx);
+          if (idx === selectedIndex) card.classList.add("active");
+
+          const title = document.createElement("div");
+          title.className = "offer-title";
+          title.textContent = msg.sender;
+
+          const body = document.createElement("div");
+          body.className = "offer-body";
+          body.textContent = msg.body;
+
+          card.appendChild(title);
+          card.appendChild(body);
+
+          card.addEventListener("click", () => {
+            listEl.dataset.selectedIndex = String(idx);
+            listEl.dataset.autoFollow = "0";
+            renderBoard(listEl, selectedEl, messages);
+          });
+
+          listEl.appendChild(card);
+        });
+
+        if (autoFollow && listEl.lastElementChild) {
+          listEl.lastElementChild.scrollIntoView({ block: "end" });
+        }
+      }
+
+      async function fetchLogs() {
+        try {
+          const res = await fetch("/logs");
+          const data = await res.json();
+          const gossipMessages = parseLog(data.gossip || "");
+          renderBoard(gossipEl, document.getElementById("gossipSelected"), gossipMessages);
+          renderChat(dmEl, parseLog(data.dm || ""));
+          statusEl.textContent = "Live";
+        } catch (e) {
+          statusEl.textContent = "Offline";
+        }
+      }
+
+      gossipEl.dataset.forceBottom = "1";
+      dmEl.dataset.forceBottom = "1";
+      fetchLogs();
+      setInterval(fetchLogs, 1000);
+
+      document.getElementById("resetBtn").addEventListener("click", async () => {
+        statusEl.textContent = "Resetting...";
+        gossipEl.dataset.autoFollow = "1";
+        dmEl.dataset.forceBottom = "1";
+        gossipEl.dataset.selectedIndex = "0";
+        gossipEl.innerHTML = "";
+        document.getElementById("gossipSelected").textContent = "No gossip yet.";
+        dmEl.innerHTML = "";
+        try {
+          const res = await fetch("/reset", { method: "POST" });
+          if (!res.ok) throw new Error("Reset failed");
+          statusEl.textContent = "Reset queued";
+        } catch {
+          statusEl.textContent = "Reset failed";
+        }
+      });
+    </script>
+  </body>
+</html>

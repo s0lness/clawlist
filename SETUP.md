@@ -2,6 +2,12 @@
 
 This is a local-only Matrix setup for a fast MVP demo.
 
+## One-command demo (fresh machine)
+This resets local Matrix state, registers demo users, builds, creates rooms, starts the UI, and runs the scripted demo:
+```bash
+npm run demo:all
+```
+
 ## 1) Start a local Matrix homeserver (Synapse)
 
 Generate the config:
@@ -65,6 +71,20 @@ node dist/agent.js scripted --config config/agent_b.json --room dm --script scri
 Or run both at once:
 ```bash
 npm run demo
+```
+
+## 5) Local transcript UI
+Start the UI server:
+```bash
+npm run ui
+```
+
+Open:
+`http://localhost:8090`
+
+Then run the demo (Docker network path):
+```bash
+npm run demo:docker
 ```
 
 ## 4) Send messages (manual)
