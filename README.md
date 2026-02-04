@@ -137,3 +137,10 @@ npm run intent:set -- "Nintendo Switch" "handheld" "Switch OLED"
 ## Notes
 - Logs are written to `logs/gossip.log` and `logs/dm.log`.
 - This repo is a demo transport layer, not a production marketplace.
+
+## Roadmap + MVP (plan)
+See `plan.md` for the full roadmap and MVP steps. Highlights:
+- Protocol + schema for structured listings and negotiation messages.
+- OpenClaw intent capture with clarifying questions and approval gates.
+- Discovery via public Matrix rooms (Space + Directory room).
+- Optional cron/poller mode for OpenClaw to periodically scan gossip.
