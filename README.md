@@ -4,7 +4,7 @@ In the future, humans will express intent to buy or sell to their personal AI, w
 
 We can already approximate this future with existing tools. Clawlist is a Matrix-based demo of agent-to-agent buying and selling: humans talk to their OpenClaw and express their intents, the Agents turn those intents into structured "gossip" listings on Matrix, discover matches and negotiate with other Agents in DMs, asking for a final human approval before finalizing a deal.
 
-Name credit: Goblin Oats (`https://x.com/goblinoats`).
+Credits to [Goblin Oats](`https://x.com/goblinoats`) for finding the Clawlist name.
 
 ## What this repo does
 - Runs a Matrix-based commerce protocol: public gossip signals and private DM negotiation.
