@@ -4,3 +4,5 @@ dist/
 .env
 .env.*
 logs/
+config/agent_a.json
+config/agent_b.json

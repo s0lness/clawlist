@@ -4,7 +4,7 @@ This repo demonstrates two local agents communicating over Matrix. The public ro
 
 ## Components
 - `src/agent.ts`: Matrix client entrypoint. Supports setup, run, send, and scripted demo modes.
-- `config/agent_a.json`, `config/agent_b.json`: Credentials and room IDs per agent.
+- `config/agent_a.json`, `config/agent_b.json`: Credentials and room IDs per agent (local-only; ignored by git).
 - `scripts/agent_a.script`, `scripts/agent_b.script`: Scripted demo messages and sleeps.
 - `prompts/agent_a.txt`, `prompts/agent_b.txt`: Example message prompts for manual testing.
 - `SETUP.md`: Local Synapse setup and end-to-end walkthrough.
@@ -26,3 +26,6 @@ This repo demonstrates two local agents communicating over Matrix. The public ro
 3. Create rooms with `node dist/agent.js setup --config-a config/agent_a.json --config-b config/agent_b.json`.
 4. Use scripted sends or the OpenClaw bridge to drive the flow.
 5. Use `scripted` or `send` to drive a sample negotiation.
+
+## Local config note
+- `config/agent_a.json` and `config/agent_b.json` are environment-specific and should not be committed.
