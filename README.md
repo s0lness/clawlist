@@ -33,10 +33,8 @@ Flow:
 5. Agent → Human (optional): request approval.
 6. Agent → Agent (DM): confirm deal.
 
-## OpenClaw-First Decision (LLM-Only Guardrails)
-We intentionally keep approval and deal-confirmation logic inside the OpenClaw skill/prompt, not in the bridge. The bridge stays a thin transport + logging layer and does not enforce negotiation invariants. This keeps behavior centralized in the LLM policy and avoids duplicated logic in TypeScript.
-
-We also keep intent matching inside OpenClaw. The bridge forwards gossip messages without filtering; the skill decides whether a signal is relevant.
+## Design Decisions
+See `DESIGN.md`.
 
 ## Blueprint: Intent + Private Detail (Flexible Architecture)
 This repo is designed to support both a centralized MVP and a permissionless federated network without changing the protocol.
