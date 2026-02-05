@@ -1,18 +1,31 @@
-const test = require("node:test");
-const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const os = require("node:os");
-const path = require("node:path");
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
-const { logEvent } = require("../dist/log.js");
+const { logEvent } = require("../dist/log.js") as {
+  logEvent: (
+    event: {
+      ts: string;
+      channel: "dm" | "gossip";
+      from: string;
+      to?: string;
+      body: string;
+      transport: string;
+    },
+    dir: string,
+    redact: "none" | "dm" | "all"
+  ) => void;
+};
 
-function readEvents(dir) {
+function readEvents(dir: string): Array<{ body: string }> {
   const data = fs.readFileSync(path.join(dir, "events.jsonl"), "utf8");
   return data
     .trim()
     .split(/\r?\n/)
     .filter(Boolean)
-    .map((line) => JSON.parse(line));
+    .map((line: string) => JSON.parse(line) as { body: string });
 }
 
 test("logEvent redacts dm messages when configured", () => {

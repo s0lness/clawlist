@@ -1,7 +1,23 @@
-const test = require("node:test");
-const assert = require("node:assert/strict");
+import test from "node:test";
+import assert from "node:assert/strict";
 
-const { normalizeMatrixEvent } = require("../dist/transports/matrix.js");
+const { normalizeMatrixEvent } = require("../dist/transports/matrix.js") as {
+  normalizeMatrixEvent: (args: {
+    event: unknown;
+    room: { roomId: string };
+    userId: string;
+    gossipRoomId: string;
+    dmRoomIds: Set<string>;
+  }) =>
+    | {
+        channel: string;
+        body: string;
+        room_id: string;
+        event_id: string;
+        to?: string;
+      }
+    | null;
+};
 
 function makeEvent({
   type = "m.room.message",
@@ -10,6 +26,13 @@ function makeEvent({
   sender = "@b:localhost",
   ts = 0,
   id = "$event",
+}: {
+  type?: string;
+  msgtype?: string;
+  body?: string;
+  sender?: string;
+  ts?: number;
+  id?: string;
 } = {}) {
   return {
     getType: () => type,

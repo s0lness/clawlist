@@ -1,12 +1,14 @@
-const test = require("node:test");
-const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const os = require("node:os");
-const path = require("node:path");
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
-const { loadConfig } = require("../dist/config.js");
+const { loadConfig } = require("../dist/config.js") as {
+  loadConfig: (configPath: string) => { base_url: string; user_id: string };
+};
 
-function writeConfig(dir, name, obj) {
+function writeConfig(dir: string, name: string, obj: Record<string, unknown>): string {
   const p = path.join(dir, name);
   fs.writeFileSync(p, JSON.stringify(obj, null, 2));
   return p;
