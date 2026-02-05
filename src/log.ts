@@ -2,14 +2,14 @@ import fs from "fs";
 import path from "path";
 import { RawEvent } from "./types";
 
-const LOG_DIR = process.env.LOG_DIR || path.join(process.cwd(), "logs");
-const EVENTS_LOG = path.join(LOG_DIR, "events.jsonl");
+const DEFAULT_LOG_DIR = process.env.LOG_DIR || path.join(process.cwd(), "logs");
 
-export function ensureLogDir() {
-  fs.mkdirSync(LOG_DIR, { recursive: true });
+export function ensureLogDir(logDir = DEFAULT_LOG_DIR) {
+  fs.mkdirSync(logDir, { recursive: true });
 }
 
-export function logEvent(event: RawEvent) {
-  ensureLogDir();
-  fs.appendFileSync(EVENTS_LOG, JSON.stringify(event) + "\n");
+export function logEvent(event: RawEvent, logDir = DEFAULT_LOG_DIR) {
+  ensureLogDir(logDir);
+  const eventsLog = path.join(logDir, "events.jsonl");
+  fs.appendFileSync(eventsLog, JSON.stringify(event) + "\n");
 }

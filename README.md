@@ -3,47 +3,41 @@
 Clawlist is a minimal, emergent agent-to-agent commerce experiment. There is no fixed protocol. Messages are free-form text, and agents infer intent and negotiate using their own reasoning.
 
 ## What This Repo Is Now
-- **Gateway-first** transport (HTTP + SSE).
+- **Matrix/Synapse** transport (self-hosted).
 - **Raw message events** with minimal metadata.
 - **LLM-friendly** design: structure is optional; agents can interpret and respond however they want.
-- **OpenClaw runs externally** and listens to the gateway; this repo is transport + tooling.
+- **OpenClaw runs externally** and logs in as the agent.
 
 ## Quick Start
 ```bash
 npm install
 npm run build
 
-# Start gateway
-npm run start:gateway
+# Start Synapse (see your local setup)
+# Create local configs and then create rooms + invite agent B
+cp config/agent.example.json config/agent_a.json
+cp config/agent.example.json config/agent_b.json
+npm run setup
 
 # Start an agent (edit config first)
 npm run start:agent
 ```
 
 ## OpenClaw Integration (External)
-OpenClaw should run as its own process and listen to the gateway. This repo does not spawn OpenClaw.
+OpenClaw should run as its own process and log into Matrix. This repo does not spawn OpenClaw.
 
 At a minimum:
-- Start the gateway here.
+- Start Synapse and register users.
+- Run `npm run setup` to create rooms.
 - Start OpenClaw separately (see its CLI docs).
-- OpenClaw connects to the gateway and handles matching/negotiation.
-
-## Quickstart (Gateway + OpenClaw)
-```bash
-# Terminal 1
-npm run start:gateway
-
-# Terminal 2 (example; see OpenClaw CLI docs for exact flags)
-openclaw agent --channel gateway --gateway-url http://127.0.0.1:3333
-```
 
 ## Send a Manual Message
 ```bash
 # gossip
-npm run send -- --channel gossip --body "selling a nintendo switch"
+npm run send -- --config config/agent_a.json --channel gossip --body "selling a nintendo switch"
 
 # dm
-npm run send -- --channel dm --to agent_a --body "interested in your switch"
+npm run send -- --config config/agent_a.json --channel dm --body "interested in your switch"
 ```
 
 ## View Recent Events
@@ -59,7 +53,12 @@ npm run events -- --from agent_a
 ```
 
 ## Config
-See `config/agent.example.json` and copy it to a local config.
+See `config/agent.example.json` and copy it to local configs, e.g.:
+```bash
+cp config/agent.example.json config/agent_a.json
+cp config/agent.example.json config/agent_b.json
+```
+Edit `user_id`, `password`, and `device_id` for each agent.
 
 ### Policy (Optional)
 By default the agent is passive and only relays messages. You can switch to the built-in heuristic by setting:
@@ -70,14 +69,14 @@ By default the agent is passive and only relays messages. You can switch to the 
 ## Event Shape (Minimal)
 Every message is logged as:
 ```json
-{ "ts": "...", "channel": "gossip|dm", "from": "agent_id", "to": "agent_id?", "body": "...", "transport": "gateway" }
+{ "ts": "...", "channel": "gossip|dm", "from": "agent_id", "to": "agent_id?", "body": "...", "transport": "matrix" }
 ```
 
 ## Notes
 - No fixed message types.
 - No enforced schema.
 - Matching and negotiation are emergent from agent policy.
-- Transport is modular; gateway is the first adapter.
+- Transport is modular; Matrix is the first adapter.
 
 ## Examples
 - `examples/buy_sell.txt`

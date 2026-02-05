@@ -5,16 +5,18 @@
   "type": "commonjs",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start:gateway": "node dist/cli.js gateway",
     "start:agent": "node dist/cli.js agent --config config/agent.example.json",
+    "setup": "node dist/cli.js setup --config-a config/agent_a.json --config-b config/agent_b.json",
     "send": "node dist/cli.js send",
     "events": "node dist/cli.js events",
-    "dev:gateway": "node src/cli.ts gateway",
     "dev:agent": "node src/cli.ts agent --config config/agent.example.json",
     "dev:send": "node src/cli.ts send",
-    "dev:events": "node src/cli.ts events"
+    "dev:events": "node src/cli.ts events",
+    "dev:setup": "node src/cli.ts setup --config-a config/agent_a.json --config-b config/agent_b.json"
   },
-  "dependencies": {},
+  "dependencies": {
+    "matrix-js-sdk": "^40.1.0"
+  },
   "devDependencies": {
     "@types/node": "^20.11.30",
     "typescript": "^5.5.4"

@@ -1,6 +1,10 @@
 {
-  "agent_id": "agent_a",
-  "gateway_url": "http://127.0.0.1:3333",
+  "base_url": "http://127.0.0.1:8008",
+  "user_id": "@agent_a:localhost",
+  "password": "changeme",
+  "device_id": "AGENTA",
+  "gossip_room_alias": "#gossip:localhost",
+  "log_dir": "logs",
   "goals": [
     "i want to buy a nintendo switch for 120€",
     "i want to trade a nintendo switch for pokemon cards"

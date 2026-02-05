@@ -6,7 +6,7 @@ export type RawEvent = {
   from: string;
   to?: string;
   body: string;
-  transport: "gateway";
+  transport: "matrix";
 };
 
 export type PolicyConfig =
@@ -18,8 +18,15 @@ export type PolicyConfig =
     };
 
 export type AgentConfig = {
-  agent_id: string;
-  gateway_url: string;
+  base_url: string;
+  user_id: string;
+  password: string;
+  device_id?: string;
+  access_token?: string;
+  gossip_room_alias?: string;
+  gossip_room_id?: string;
+  dm_room_id?: string;
+  log_dir?: string;
   goals: string[];
   policy?: PolicyConfig;
 };

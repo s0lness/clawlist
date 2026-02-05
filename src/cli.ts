@@ -1,18 +1,14 @@
 import fs from "fs";
-import { startGateway } from "./gateway";
 import { startAgent } from "./agent";
-import { httpRequest } from "./http";
 import { AgentConfig } from "./types";
+import { loadConfig, saveConfig } from "./config";
+import { getClient, ensureJoined, normalizeAlias } from "./matrix";
+import { logEvent } from "./log";
 
 function getArg(args: string[], name: string): string | null {
   const idx = args.indexOf(`--${name}`);
   if (idx === -1) return null;
   return args[idx + 1] ?? null;
-}
-
-function loadConfig(path: string): AgentConfig {
-  const raw = fs.readFileSync(path, "utf8");
-  return JSON.parse(raw) as AgentConfig;
 }
 
 function readEvents(logPath: string) {
@@ -31,14 +27,6 @@ async function main() {
   const args = process.argv.slice(2);
   const cmd = args[0];
 
-  if (cmd === "gateway") {
-    const portRaw = getArg(args, "port");
-    const host = getArg(args, "host") ?? undefined;
-    const port = portRaw ? Number(portRaw) : undefined;
-    startGateway(port, host);
-    return;
-  }
-
   if (cmd === "agent") {
     const config = getArg(args, "config");
     if (!config) throw new Error("--config is required");
@@ -46,35 +34,83 @@ async function main() {
     return;
   }
 
+  if (cmd === "setup") {
+    const configAPath = getArg(args, "config-a");
+    const configBPath = getArg(args, "config-b");
+    if (!configAPath || !configBPath) {
+      throw new Error("--config-a and --config-b are required");
+    }
+    const { client, config: configA } = await getClient(configAPath);
+    const configB = loadConfig(configBPath);
+
+    const alias = normalizeAlias(configA.gossip_room_alias) ?? "#gossip:localhost";
+    const aliasLocalpart = alias.split(":")[0].replace(/^#/, "");
+
+    const gossipRoom = await client.createRoom({
+      room_alias_name: aliasLocalpart,
+      name: "gossip",
+      visibility: "public",
+      preset: "public_chat",
+    });
+
+    await client.invite(gossipRoom.room_id, configB.user_id);
+
+    const dmRoom = await client.createRoom({
+      is_direct: true,
+      invite: [configB.user_id],
+    });
+
+    configA.gossip_room_id = gossipRoom.room_id;
+    configB.gossip_room_id = gossipRoom.room_id;
+    configA.dm_room_id = dmRoom.room_id;
+    configB.dm_room_id = dmRoom.room_id;
+
+    saveConfig(configAPath, configA);
+    saveConfig(configBPath, configB);
+
+    console.log("Setup complete");
+    console.log(`gossip_room_id: ${gossipRoom.room_id}`);
+    console.log(`dm_room_id: ${dmRoom.room_id}`);
+    return;
+  }
+
   if (cmd === "send") {
     const configPath = getArg(args, "config");
     const channel = getArg(args, "channel");
     const body = getArg(args, "body");
-    const to = getArg(args, "to");
-    const from = getArg(args, "from");
-    const gateway = getArg(args, "gateway");
 
     if (!channel || !body) {
       throw new Error("--channel and --body are required");
     }
-
-    let agentId = from ?? "anonymous";
-    let gatewayUrl = gateway ?? "http://127.0.0.1:3333";
-    if (configPath) {
-      const cfg = loadConfig(configPath);
-      agentId = cfg.agent_id;
-      gatewayUrl = cfg.gateway_url;
-    }
-
-    const base = gatewayUrl.replace(/\/$/, "");
-    if (channel === "gossip") {
-      httpRequest(`${base}/gossip`, "POST", { from: agentId, body }).catch(() => {});
-    } else if (channel === "dm") {
-      if (!to) throw new Error("--to is required for dm");
-      httpRequest(`${base}/dm`, "POST", { from: agentId, to, body }).catch(() => {});
-    } else {
+    if (channel !== "gossip" && channel !== "dm") {
       throw new Error("--channel must be gossip or dm");
     }
+
+    if (!configPath) throw new Error("--config is required");
+    const { client, config } = await getClient(configPath);
+    const roomId =
+      channel === "gossip" ? config.gossip_room_id : channel === "dm" ? config.dm_room_id : null;
+    if (!roomId) throw new Error(`room id missing for ${channel}`);
+
+    await ensureJoined(client, roomId);
+    await client.sendEvent(
+      roomId,
+      "m.room.message",
+      { msgtype: "m.text", body },
+      ""
+    );
+
+    const channelKey = channel === "gossip" ? "gossip" : "dm";
+    logEvent(
+      {
+        ts: new Date().toISOString(),
+        channel: channelKey,
+        from: config.user_id,
+        body,
+        transport: "matrix",
+      },
+      config.log_dir ?? "logs"
+    );
     return;
   }
 
@@ -99,7 +135,7 @@ async function main() {
     return;
   }
 
-  throw new Error("Command required: gateway | agent | send | events");
+  throw new Error("Command required: agent | setup | send | events");
 }
 
 main().catch((err) => {
