@@ -99,3 +99,10 @@ These are the concrete steps to move the repo from a vibecoded MVP to a durable 
 - Optional `persist_access_token` flag to avoid writing tokens to disk.
 - OpenClaw webhook timeout support (`openclaw_timeout_ms`).
 - `setup` now guards against mismatched alias domains.
+- Webhook queueing + bounded retries (`openclaw_queue_max`, `openclaw_retry_*`).
+- Graceful shutdown on SIGINT/SIGTERM with queue drain.
+- Rate limiting + dedupe for OpenClaw notifications.
+- Multi-recipient DM routing via `dm_rooms` and `dm_room_ids`.
+- Transport contract test with a mock transport.
+- Architecture and flow docs (`docs/architecture.md`, `docs/flows.md`).
+- Convenience scripts: `npm run start`, `npm run dev`.

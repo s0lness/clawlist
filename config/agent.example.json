@@ -9,8 +9,17 @@
   "openclaw_url": "http://127.0.0.1:18789/wake",
   "openclaw_token": "changeme",
   "openclaw_timeout_ms": 5000,
+  "openclaw_retry_max": 3,
+  "openclaw_retry_delay_ms": 1000,
+  "openclaw_queue_max": 100,
+  "rate_limit_per_sec": 20,
+  "dedupe_ttl_ms": 300000,
   "persist_access_token": false,
   "dm_recipient": "@agent_b:localhost",
+  "dm_room_ids": ["!dm_room_id:localhost"],
+  "dm_rooms": {
+    "@agent_b:localhost": "!dm_room_id:localhost"
+  },
   "goals": [
     "i want to buy a nintendo switch for 120€",
     "i want to trade a nintendo switch for pokemon cards"

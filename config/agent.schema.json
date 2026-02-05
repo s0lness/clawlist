@@ -13,12 +13,25 @@
     "gossip_room_alias": { "type": "string", "minLength": 1 },
     "gossip_room_id": { "type": "string", "minLength": 1 },
     "dm_room_id": { "type": "string", "minLength": 1 },
+    "dm_room_ids": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "dm_rooms": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
     "dm_recipient": { "type": "string", "minLength": 1 },
     "log_dir": { "type": "string", "minLength": 1 },
     "log_redact": { "type": "string", "enum": ["none", "dm", "all"] },
     "openclaw_url": { "type": "string", "minLength": 1 },
     "openclaw_token": { "type": "string", "minLength": 1 },
     "openclaw_timeout_ms": { "type": "number", "minimum": 0 },
+    "openclaw_retry_max": { "type": "number", "minimum": 0 },
+    "openclaw_retry_delay_ms": { "type": "number", "minimum": 0 },
+    "openclaw_queue_max": { "type": "number", "minimum": 0 },
+    "rate_limit_per_sec": { "type": "number", "minimum": 0 },
+    "dedupe_ttl_ms": { "type": "number", "minimum": 0 },
     "goals": {
       "type": "array",
       "items": { "type": "string" },

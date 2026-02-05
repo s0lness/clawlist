@@ -56,6 +56,9 @@ npm run send -- --config config/agent_a.json --channel gossip --body "selling a 
 
 # dm
 npm run send -- --config config/agent_a.json --channel dm --body "interested in your switch"
+
+# dm to a specific recipient (uses dm_rooms mapping)
+npm run send -- --config config/agent_a.json --channel dm --to @agent_b:localhost --body "interested in your switch"
 ```
 
 ## View Recent Events
@@ -85,6 +88,13 @@ Schema reference: `config/agent.schema.json`.
 Security note: `access_token` can be persisted in the config if you set
 `persist_access_token: true`. Do not commit real tokens or passwords.
 
+Optional routing and safety settings:
+- `dm_room_ids`: list of additional DM room IDs to join.
+- `dm_rooms`: map of recipient user_id to DM room ID for targeted sending.
+- `rate_limit_per_sec`: drop OpenClaw notifications above this rate.
+- `dedupe_ttl_ms`: skip duplicate events within this window.
+- `openclaw_retry_max`, `openclaw_retry_delay_ms`, `openclaw_queue_max`: webhook retry/queue behavior.
+
 If you want OpenClaw to receive wake events from Matrix, set:
 ```json
 {
@@ -108,6 +118,10 @@ If you want to redact logs:
 - `examples/buy_sell.txt`
 - `examples/barter.txt`
 - `examples/coalition.txt`
+
+## Docs
+- `docs/architecture.md`
+- `docs/flows.md`
 
 ## Loony Ideas
 - Buyer coalitions: agents with the same intent coordinate in private to negotiate as a group.

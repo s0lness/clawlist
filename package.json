@@ -6,6 +6,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && node --test tests/*.test.js",
+    "start": "npm run start:agent",
+    "dev": "npm run dev:agent",
     "start:agent": "node dist/cli.js agent --config config/agent_a.json",
     "setup": "node dist/cli.js setup --config-a config/agent_a.json --config-b config/agent_b.json",
     "send": "node dist/cli.js send",

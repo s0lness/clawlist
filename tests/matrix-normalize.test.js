@@ -26,7 +26,7 @@ test("normalizeMatrixEvent returns gossip event with ids", () => {
     room: { roomId: "!gossip" },
     userId: "@a:localhost",
     gossipRoomId: "!gossip",
-    dmRoomId: "!dm",
+    dmRoomIds: new Set(["!dm"]),
   });
 
   assert.ok(raw);
@@ -43,7 +43,7 @@ test("normalizeMatrixEvent returns dm event with recipient", () => {
     room: { roomId: "!dm" },
     userId: "@a:localhost",
     gossipRoomId: "!gossip",
-    dmRoomId: "!dm",
+    dmRoomIds: new Set(["!dm"]),
   });
 
   assert.ok(raw);
@@ -57,7 +57,7 @@ test("normalizeMatrixEvent ignores self messages", () => {
     room: { roomId: "!gossip" },
     userId: "@a:localhost",
     gossipRoomId: "!gossip",
-    dmRoomId: "!dm",
+    dmRoomIds: new Set(["!dm"]),
   });
 
   assert.equal(raw, null);
@@ -69,7 +69,7 @@ test("normalizeMatrixEvent ignores non-text messages", () => {
     room: { roomId: "!gossip" },
     userId: "@a:localhost",
     gossipRoomId: "!gossip",
-    dmRoomId: "!dm",
+    dmRoomIds: new Set(["!dm"]),
   });
 
   assert.equal(raw, null);

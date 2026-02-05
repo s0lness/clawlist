@@ -47,6 +47,18 @@ function followEvents(logPath: string) {
   }, 1000);
 }
 
+function printUsage() {
+  console.log(
+    [
+      "Usage:",
+      "  agent --config <path>",
+      "  setup --config-a <path> --config-b <path>",
+      "  send --config <path> --channel <gossip|dm> --body <text> [--to <user_id>]",
+      "  events [--log <path>] [--channel gossip|dm] [--from <user>] [--to <user>] [--contains <text>] [--limit <n>] [--follow true|1]",
+    ].join("\n")
+  );
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const cmd = args[0];
@@ -120,17 +132,29 @@ async function main() {
 
     if (!configPath) throw new Error("--config is required");
     const { client, config } = await getClient(configPath);
-    const roomId =
-      channel === "gossip" ? config.gossip_room_id : channel === "dm" ? config.dm_room_id : null;
+    let roomId: string | null = null;
+    if (channel === "gossip") {
+      roomId = config.gossip_room_id ?? null;
+    } else if (channel === "dm") {
+      if (toArg && config.dm_rooms && config.dm_rooms[toArg]) {
+        roomId = config.dm_rooms[toArg];
+      } else if (toArg) {
+        throw new Error(`dm room missing for recipient ${toArg}`);
+      } else {
+        roomId = config.dm_room_id ?? null;
+      }
+    }
     if (!roomId) throw new Error(`room id missing for ${channel}`);
 
     await ensureJoined(client, roomId);
-    await client.sendEvent(
+    const sendRes = await client.sendEvent(
       roomId,
       "m.room.message",
       { msgtype: "m.text", body },
       ""
     );
+    const eventId =
+      typeof sendRes === "string" ? sendRes : sendRes?.event_id ?? sendRes?.eventId;
 
     const channelKey = channel === "gossip" ? "gossip" : "dm";
     const to = channelKey === "dm" ? toArg ?? config.dm_recipient : undefined;
@@ -142,6 +166,8 @@ async function main() {
         to,
         body,
         transport: "matrix",
+        room_id: roomId,
+        event_id: eventId,
       },
       config.log_dir ?? "logs"
     );
@@ -177,6 +203,8 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(err);
+  const message = err?.message ?? String(err);
+  console.error(`Error: ${message}`);
+  printUsage();
   process.exit(1);
 });

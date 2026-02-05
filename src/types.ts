@@ -21,12 +21,19 @@ export type AgentConfig = {
   gossip_room_alias?: string;
   gossip_room_id?: string;
   dm_room_id?: string;
+  dm_room_ids?: string[];
+  dm_rooms?: Record<string, string>;
   dm_recipient?: string;
   log_dir?: string;
   log_redact?: "none" | "dm" | "all";
   openclaw_url?: string;
   openclaw_token?: string;
   openclaw_timeout_ms?: number;
+  openclaw_retry_max?: number;
+  openclaw_retry_delay_ms?: number;
+  openclaw_queue_max?: number;
+  rate_limit_per_sec?: number;
+  dedupe_ttl_ms?: number;
   goals: string[];
 };
 
