@@ -51,6 +51,25 @@ Notes:
 - This uses the self-contained harness in `clawlist-matrix-run/`.
 - Synapse state + run outputs are written under `clawlist-matrix-run/runs/<run_id>/`.
 
+You can also run the harness through a tracked scenario config:
+```bash
+# inspect effective config (example + optional local override)
+npm run scenario:print-config
+
+# run scenario
+npm run scenario
+```
+
+Scenario config files:
+- tracked template: `config/scenario.example.json`
+- local template: `config/scenario.local.example.json`
+- local override (gitignored): `config/scenario.local.json`
+
+Create your local override from template:
+```bash
+cp config/scenario.local.example.json config/scenario.local.json
+```
+
 ## Create a Room (Script)
 ```bash
 # set credentials for room creator
@@ -143,6 +162,22 @@ If you want to redact logs:
 ## Docs
 - `docs/architecture.md`
 - `docs/flows.md`
+- `docs/repo-hygiene.md`
+
+## Clean Local Workflow
+Keep your local testing artifacts out of commits:
+- Runtime outputs are gitignored (`logs/`, `runs/`, `clawlist-matrix-run/runs/`, Synapse data dirs).
+- Local secrets/config are gitignored (`config/agent_*.json`, `config/scenario.local.json`, `*.env`).
+
+Install the pre-commit guard once per clone:
+```bash
+npm run hooks:install
+```
+
+Run it manually any time:
+```bash
+npm run check:repo
+```
 
 ## Loony Ideas
 - Buyer coalitions: agents with the same intent coordinate in private to negotiate as a group.

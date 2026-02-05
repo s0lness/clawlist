@@ -6,6 +6,10 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && node --test tests/*.test.js",
+    "check:repo": "bash scripts/precommit-check.sh",
+    "hooks:install": "bash scripts/install-git-hooks.sh",
+    "scenario": "node scripts/scenario.js run",
+    "scenario:print-config": "node scripts/scenario.js print-config",
     "start": "npm run start:agent",
     "dev": "npm run dev:agent",
     "start:agent": "node dist/cli.js agent --config config/agent_a.json",

@@ -71,19 +71,25 @@ run_timeout docker run --rm \
 
 MATRIX_PORT="${MATRIX_PORT:-18008}"
 
-# Start synapse
+# Start (or reuse) synapse
 
 echo "[bootstrap] starting synapse"
-# If an old container exists, replace it (local-only, safe)
-docker rm -f clawlist-synapse >/dev/null 2>&1 || true
+MATRIX_REUSE="${MATRIX_REUSE:-0}"
 
-run_timeout docker run -d \
-  --name clawlist-synapse \
-  -p "${MATRIX_PORT}:8008" \
-  -e SYNAPSE_SERVER_NAME=localhost \
-  -e SYNAPSE_REPORT_STATS=no \
-  -v "$SYNAPSE_DIR:/data" \
-  matrixdotorg/synapse:latest >/dev/null
+if [ "$MATRIX_REUSE" = "1" ] && docker ps --format '{{.Names}}' | grep -qx 'clawlist-synapse'; then
+  echo "[bootstrap] reusing existing synapse container" >&2
+else
+  # If an old container exists, replace it (local-only, safe)
+  docker rm -f clawlist-synapse >/dev/null 2>&1 || true
+
+  run_timeout docker run -d \
+    --name clawlist-synapse \
+    -p "${MATRIX_PORT}:8008" \
+    -e SYNAPSE_SERVER_NAME=localhost \
+    -e SYNAPSE_REPORT_STATS=no \
+    -v "$SYNAPSE_DIR:/data" \
+    matrixdotorg/synapse:latest >/dev/null
+fi
 
 # Wait for HTTP
 
@@ -156,17 +162,26 @@ fi
 
 echo "[bootstrap] creating (or reusing) market room"
 # Try to find an existing room by alias; if not, create and set alias.
-ROOM_ALIAS="#market:localhost"
+ROOM_SUFFIX="${MATRIX_RUN_ID:-}"
+if [ -n "$ROOM_SUFFIX" ]; then
+  ROOM_ALIAS="#market-${ROOM_SUFFIX}:localhost"
+  ROOM_ALIAS_NAME="market-${ROOM_SUFFIX}"
+  ROOM_NAME="market-${ROOM_SUFFIX}"
+else
+  ROOM_ALIAS="#market:localhost"
+  ROOM_ALIAS_NAME="market"
+  ROOM_NAME="market"
+fi
 
-# Create room
+# Create room (best-effort; will fall back to alias resolution)
 CREATE_ROOM=$(curl_retry -X POST "http://127.0.0.1:${MATRIX_PORT}/_matrix/client/v3/createRoom" \
   -H "Authorization: Bearer $SELLER_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{
     "preset":"public_chat",
-    "name":"market",
-    "room_alias_name":"market",
-    "topic":"clawlist market run",
+    "name":"'"$ROOM_NAME"'",
+    "room_alias_name":"'"$ROOM_ALIAS_NAME"'",
+    "topic":"clawlist market run '"${ROOM_SUFFIX:-}"'",
     "visibility":"public"
   }' || true)
 
@@ -214,6 +229,7 @@ NODE
 
 # And also print shell-friendly exports
 echo "ROOM_ID=$ROOM_ID"
+echo "ROOM_ALIAS=$ROOM_ALIAS"
 echo "SELLER_MXID=@${SELLER_USER}:localhost"
 echo "BUYER_MXID=@${BUYER_USER}:localhost"
 

@@ -1,0 +1,19 @@
+{
+  "run": {
+    "minutes": 10,
+    "id": null
+  },
+  "matrix": {
+    "reuse": true,
+    "synapseDir": null
+  },
+  "gateway": {
+    "sellerPort": 28791,
+    "buyerPort": 28792,
+    "sellerToken": "token-switch-seller",
+    "buyerToken": "token-switch-buyer"
+  },
+  "room": {
+    "alias": "#market:localhost"
+  }
+}

@@ -6,9 +6,15 @@ node_modules/
 
 # Logs
 /logs/
+/runs/
+*.log
 
 # Local configs (often contain secrets)
 /config/agent_*.json
+/config/scenario.local.json
+*.env
+*.env.*
+*secrets.env
 
 # Local run harness artifacts
 clawlist-matrix-run/runs/

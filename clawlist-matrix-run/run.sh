@@ -78,12 +78,19 @@ curl_retry() {
   local method="${2:-GET}"
   local data="${3:-}"
   local token="${4:-}"
+
   for i in {1..5}; do
+    # Always include Authorization when a token is provided (even for GET with no body).
     if [ -n "$token" ] && [ -n "$data" ]; then
       if curl -fsS --max-time 20 -X "$method" "$url" \
         -H "Authorization: Bearer $token" \
         -H 'Content-Type: application/json' \
         -d "$data" >/dev/null; then
+        return 0
+      fi
+    elif [ -n "$token" ]; then
+      if curl -fsS --max-time 20 -X "$method" "$url" \
+        -H "Authorization: Bearer $token" >/dev/null; then
         return 0
       fi
     elif [ -n "$data" ]; then
@@ -93,7 +100,7 @@ curl_retry() {
         return 0
       fi
     else
-      if curl -fsS --max-time 20 "$url" >/dev/null; then
+      if curl -fsS --max-time 20 -X "$method" "$url" >/dev/null; then
         return 0
       fi
     fi
@@ -157,18 +164,32 @@ MATRIX_BOOTSTRAP_RAW="$OUT_DIR/bootstrap.raw"
 SECRETS_FILE="$OUT_DIR/secrets.env"
 
 # 1) Matrix up + room + tokens
+# Reuse Synapse across runs by default to reduce flakes and focus on agent behavior.
+export MATRIX_REUSE="${MATRIX_REUSE:-1}"
+export MATRIX_RUN_ID="$RUN_ID"
 
-echo "[run] bootstrapping matrix"
-log_step "bootstrap_matrix" "start"
-BOOTSTRAP_SECRETS_FILE="$SECRETS_FILE" ./scripts/bootstrap_matrix.sh | tee "$MATRIX_BOOTSTRAP_RAW" >/dev/null
-chmod 600 "$MATRIX_BOOTSTRAP_RAW" "$SECRETS_FILE" || true
-# Keep only KEY=VALUE lines for sourcing
-grep -E '^[A-Z0-9_]+=.*$' "$MATRIX_BOOTSTRAP_RAW" > "$MATRIX_BOOTSTRAP_OUT"
-log_step "bootstrap_matrix" "ok"
+if [ "${MATRIX_BOOTSTRAP_PRESET:-0}" = "1" ]; then
+  MATRIX_BOOTSTRAP_OUT="${MATRIX_BOOTSTRAP_OUT_PRESET:?MATRIX_BOOTSTRAP_OUT_PRESET required}"
+  SECRETS_FILE="${MATRIX_SECRETS_FILE_PRESET:?MATRIX_SECRETS_FILE_PRESET required}"
+  echo "[run] using preset matrix bootstrap env: ${MATRIX_BOOTSTRAP_OUT}" >&2
+  log_step "bootstrap_matrix" "ok" "preset"
+else
+  echo "[run] bootstrapping matrix (reuse=${MATRIX_REUSE})" >&2
+  log_step "bootstrap_matrix" "start"
+  BOOTSTRAP_SECRETS_FILE="$SECRETS_FILE" ./scripts/bootstrap_matrix.sh 2>&1 | tee "$MATRIX_BOOTSTRAP_RAW" >/dev/null
+  chmod 600 "$MATRIX_BOOTSTRAP_RAW" "$SECRETS_FILE" || true
+  # Keep only KEY=VALUE lines for sourcing
+  grep -E '^[A-Z0-9_]+=.*$' "$MATRIX_BOOTSTRAP_RAW" > "$MATRIX_BOOTSTRAP_OUT"
+  log_step "bootstrap_matrix" "ok"
+fi
 
 # Capture Synapse logs for this run (best effort)
-docker logs -f clawlist-synapse >"$OUT_DIR/synapse.log" 2>&1 &
-SYNAPSE_LOG_PID=$!
+if docker ps --format '{{.Names}}' | grep -qx 'clawlist-synapse'; then
+  docker logs -f clawlist-synapse >"$OUT_DIR/synapse.log" 2>&1 &
+  SYNAPSE_LOG_PID=$!
+else
+  SYNAPSE_LOG_PID=""
+fi
 
 # shellcheck disable=SC1090
 source "$MATRIX_BOOTSTRAP_OUT"
@@ -346,7 +367,11 @@ cleanup() {
   if [ -n "${SYNAPSE_LOG_PID:-}" ]; then
     kill "$SYNAPSE_LOG_PID" >/dev/null 2>&1 || true
   fi
-  docker rm -f clawlist-synapse >/dev/null 2>&1 || true
+  if [ "${MATRIX_REUSE:-0}" = "1" ]; then
+    echo "[run] MATRIX_REUSE=1 → keeping synapse running" >&2
+  else
+    docker rm -f clawlist-synapse >/dev/null 2>&1 || true
+  fi
 }
 
 on_exit() {
@@ -402,11 +427,13 @@ inject_mission() {
   return 1
 }
 
-SELLER_MISSION_TEXT="MISSION: You are SWITCH_SELLER. You are selling a Nintendo Switch. Anchor price: 200€. Absolute floor: 150€. You may negotiate down, but never below 150€.\n\nIMPORTANT: This is a fresh run. Ignore any room ids / context from previous runs.\nPOST TARGET (market room): ${MARKET_ROOM_ID} (room id), alias #market:localhost.\nAction now: Post ONE listing message in that market room id (${MARKET_ROOM_ID}).\nFormat requirement: your listing MUST start with exactly: LISTING: \nWhen contacted in DM, negotiate for up to 8 turns. Be concise, no roleplay fluff."
+ROOM_ALIAS="${ROOM_ALIAS:-#market:localhost}"
+
+SELLER_MISSION_TEXT="MISSION: You are SWITCH_SELLER. You are selling a Nintendo Switch. Anchor price: 200€. Absolute floor: 150€. You may negotiate down, but never below 150€.\n\nIMPORTANT: This is a fresh run. Ignore any room ids / context from previous runs.\nPOST TARGET (market room): ${MARKET_ROOM_ID} (room id), alias ${ROOM_ALIAS}.\nAction now: Post ONE listing message in that market room id (${MARKET_ROOM_ID}).\nFormat requirement: your listing MUST start with exactly: LISTING: \nWhen contacted in DM, negotiate for up to 8 turns. Be concise, no roleplay fluff."
 
 # IMPORTANT: Matrix targets must be a room id/alias or a full MXID (e.g. @user:server).
 # Give the buyer the seller's exact MXID and the market room id so routing can't guess wrong.
-BUYER_MISSION_TEXT="MISSION: You are SWITCH_BUYER. You want to buy a Nintendo Switch. Max budget: 150€. Start offer: 120€. You can go up to 150€.\n\nIMPORTANT: This is a fresh run. Ignore any room ids / context from previous runs.\nMARKET ROOM (watch here): ${MARKET_ROOM_ID} (room id), alias #market:localhost.\nWhen you see a Switch listing in that market room, DM the seller within 1 minute.\nDM TARGET: ${SELLER_MXID} (use exactly this MXID).\nNegotiate for up to 8 turns. Ask condition + accessories + pickup/shipping. Be concise."
+BUYER_MISSION_TEXT="MISSION: You are SWITCH_BUYER. You want to buy a Nintendo Switch. Max budget: 150€. Start offer: 120€. You can go up to 150€.\n\nIMPORTANT: This is a fresh run. Ignore any room ids / context from previous runs.\nMARKET ROOM (watch here): ${MARKET_ROOM_ID} (room id), alias ${ROOM_ALIAS}.\nWhen you see a Switch listing in that market room, DM the seller within 1 minute.\nDM TARGET: ${SELLER_MXID} (use exactly this MXID).\nNegotiate for up to 8 turns. Ask condition + accessories + pickup/shipping. Be concise."
 
 if ! inject_mission "$SELLER_PROFILE" "ws://127.0.0.1:${SELLER_GATEWAY_PORT}" "$SELLER_GATEWAY_TOKEN" "$SELLER_MISSION_TEXT" "$SELLER_MISSION_LOG"; then
   log_step "inject_missions" "error" "seller mission injection failed"
