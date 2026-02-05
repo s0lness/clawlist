@@ -187,7 +187,8 @@ async function main() {
         room_id: roomId,
         event_id: eventId,
       },
-      config.log_dir ?? "logs"
+      config.log_dir ?? "logs",
+      config.log_redact ?? "none"
     );
     return;
   }
