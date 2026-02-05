@@ -234,7 +234,9 @@ async function main() {
     logStep("prepare_profiles", "ok");
 
     function configureMatrix(profile: string, token: string, mxid: string) {
-      const matrixJson = `{ enabled: true, homeserver: '${homeserver}', accessToken: '${token}', userId: '${mxid}', encryption: false, dm: { policy: 'open', allowFrom: ['*'] }, groupPolicy: 'open', groups: { '*': { requireMention: false }, '${marketRoomId}': { allow: true, requireMention: false } } }`;
+      const rulesRoomId = mergedEnv.RULES_ROOM_ID;
+      const groupsExtra = rulesRoomId ? `, '${rulesRoomId}': { allow: true, requireMention: false }` : "";
+      const matrixJson = `{ enabled: true, homeserver: '${homeserver}', accessToken: '${token}', userId: '${mxid}', encryption: false, dm: { policy: 'open', allowFrom: ['*'] }, groupPolicy: 'open', groups: { '*': { requireMention: false }, '${marketRoomId}': { allow: true, requireMention: false }${groupsExtra} } }`;
       runShort(["--profile", profile, "config", "set", "--json", "channels.matrix", matrixJson]);
     }
 
@@ -283,8 +285,13 @@ async function main() {
     const buyerMissionLog = path.join(outDir, `system_event_${state.buyerProfile}.log`);
 
     const roomAlias = process.env.ROOM_ALIAS || mergedEnv.ROOM_ALIAS || "#market:localhost";
-    const sellerMission = `MISSION: You are SWITCH_SELLER. You are selling a Nintendo Switch. Anchor price: 200EUR. Absolute floor: 150EUR. You may negotiate down, but never below 150EUR.\n\nIMPORTANT: This is a fresh run. Ignore any room ids / context from previous runs.\nPOST TARGET (market room): ${marketRoomId} (room id), alias ${roomAlias}.\nAction now: Post ONE listing message in that market room id (${marketRoomId}).\nFormat requirement: your listing MUST start with exactly: LISTING: \nWhen contacted in DM, negotiate for up to 8 turns. Be concise, no roleplay fluff.`;
-    const buyerMission = `MISSION: You are SWITCH_BUYER. You want to buy a Nintendo Switch. Max budget: 150EUR. Start offer: 120EUR. You can go up to 150EUR.\n\nIMPORTANT: This is a fresh run. Ignore any room ids / context from previous runs.\nMARKET ROOM (watch here): ${marketRoomId} (room id), alias ${roomAlias}.\nWhen you see a Switch listing in that market room, DM the seller within 1 minute.\nDM TARGET: ${sellerMxid} (use exactly this MXID).\nNegotiate for up to 8 turns. Ask condition + accessories + pickup/shipping. Be concise.`;
+    const rulesAlias = process.env.RULES_ROOM_ALIAS || mergedEnv.RULES_ROOM_ALIAS || "#house-rules:localhost";
+
+    const shared = `HOUSE: You are in a public chat "market" plus private DMs. Before posting anything, read the latest message in the rules room ${rulesAlias} and follow it.\n\nIMPORTANT: This is a fresh run. Ignore any room ids / context from previous runs.`;
+
+    const sellerMission = `MISSION: You are SWITCH_SELLER.\n${shared}\n\nYou are selling a Nintendo Switch. Anchor price: 200EUR. Absolute floor: 150EUR. Do not go below 150EUR.\n\nPUBLIC: Post ONE market message in room ${marketRoomId} (alias ${roomAlias}) advertising the Switch and inviting interested buyers to DM you. Keep it concise (condition, what's included, pickup/shipping, price).\n\nDM: If contacted, negotiate up to 8 turns. Confirm final price + logistics.`;
+
+    const buyerMission = `MISSION: You are SWITCH_BUYER.\n${shared}\n\nYou want to buy a Nintendo Switch. Start offer: 120EUR. Max budget: 150EUR.\n\nPUBLIC: Watch the market room ${marketRoomId} (alias ${roomAlias}).\nDM: If you see a seller offering a Switch, DM them within 1 minute. DM target: ${sellerMxid}. Ask condition/accessories/pickup/shipping. Negotiate up to 8 turns. Confirm final price + logistics.`;
 
     function injectMission(profile: string, url: string, token: string, text: string, outLog: string): boolean {
       fs.writeFileSync(outLog, "", "utf8");
@@ -320,23 +327,23 @@ async function main() {
 
     console.error("[run] verifying market activity");
     logStep("verify_market", "start");
-    let listingOk = false;
+    let marketOk = false;
     const marketDeadline = Date.now() + 120000;
     while (Date.now() < marketDeadline) {
       const res = await fetchJson(`${homeserver}/_matrix/client/v3/rooms/${marketRoomId}/messages?dir=b&limit=30`, { headers: { Authorization: `Bearer ${sellerToken}` } });
       const chunk = Array.isArray((res.json as any)?.chunk) ? (res.json as any).chunk : [];
-      listingOk = chunk.some((ev: any) => {
+      marketOk = chunk.some((ev: any) => {
         if (!ev || ev.type !== "m.room.message" || ev.sender !== sellerMxid) return false;
         const body = ev.content && typeof ev.content.body === "string" ? ev.content.body : "";
         if (!body || /^SEED:/i.test(body)) return false;
-        return /^LISTING:/i.test(body);
+        return /switch/i.test(body);
       });
-      if (listingOk) break;
+      if (marketOk) break;
       await sleep(2000);
     }
-    if (!listingOk) {
-      logStep("verify_market", "error", "no seller LISTING: message found within 120s");
-      throw new Error("[run] verify failed: seller did not post a LISTING: message within 120s");
+    if (!marketOk) {
+      logStep("verify_market", "error", "no seller market message mentioning Switch found within 120s");
+      throw new Error("[run] verify failed: seller did not post a market message mentioning Switch within 120s");
     }
     logStep("verify_market", "ok");
 

@@ -14,6 +14,7 @@
     "scenario": "npm run build --silent && node dist-tools/scenario.js run",
     "scenario:print-config": "npm run build --silent && node dist-tools/scenario.js print-config",
     "matrix:run": "npm run build --silent && node dist-tools/run-matrix.js",
+    "matrix:watch": "npm run -s build --silent && node dist-tools/matrixRun/watch.js --latest",
     "matrix:up": "npm run build --silent && node dist-tools/matrixRun/matrix-up.js",
     "matrix:bootstrap": "npm run build --silent && node dist-tools/matrixRun/bootstrap-matrix.js",
     "matrix:run:agents": "npm run build --silent && node dist-tools/matrixRun/run-agents-only.js",

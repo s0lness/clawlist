@@ -49,45 +49,87 @@ async function main() {
   const sellerToken = await login(matrixPort, SELLER_USER, SELLER_PASS);
   const buyerToken = await login(matrixPort, BUYER_USER, BUYER_PASS);
 
+  const rulesAlias = process.env.RULES_ROOM_ALIAS || "#house-rules:localhost";
   const roomSuffix = process.env.MATRIX_RUN_ID || "";
   const roomAlias = roomSuffix ? `#market-${roomSuffix}:localhost` : "#market:localhost";
   const roomAliasName = roomSuffix ? `market-${roomSuffix}` : "market";
 
-  let roomId = "";
-  try {
-    const create = await matrixPostJson(
-      `http://127.0.0.1:${matrixPort}/_matrix/client/v3/createRoom`,
-      { preset: "public_chat", name: roomAliasName, room_alias_name: roomAliasName, topic: `clawlist market run ${roomSuffix}`, visibility: "public" },
-      sellerToken
-    );
-    roomId = create?.room_id || "";
-  } catch {
-    roomId = "";
+  async function ensureRoom(alias: string, aliasName: string, name: string, topic: string) {
+    let roomId = "";
+    try {
+      const create = await matrixPostJson(
+        `http://127.0.0.1:${matrixPort}/_matrix/client/v3/createRoom`,
+        { preset: "public_chat", name, room_alias_name: aliasName, topic, visibility: "public" },
+        sellerToken
+      );
+      roomId = create?.room_id || "";
+    } catch {
+      roomId = "";
+    }
+
+    if (!roomId) {
+      const encodedAlias = encodeMxid(alias);
+      const resolveRes = await fetchJson(`http://127.0.0.1:${matrixPort}/_matrix/client/v3/directory/room/${encodedAlias}`);
+      roomId = (resolveRes.json as any)?.room_id || "";
+    }
+
+    if (!roomId) throw new Error(`[bootstrap_session] failed to create/resolve room alias=${alias}`);
+    return roomId;
   }
 
-  if (!roomId) {
-    const encodedAlias = encodeMxid(roomAlias);
-    const resolveRes = await fetchJson(`http://127.0.0.1:${matrixPort}/_matrix/client/v3/directory/room/${encodedAlias}`);
-    roomId = (resolveRes.json as any)?.room_id || "";
-  }
+  const rulesAliasName = rulesAlias.replace(/^#/, "").split(":")[0] || "house-rules";
+  const rulesRoomId = await ensureRoom(rulesAlias, rulesAliasName, rulesAliasName, "clawlist house rules");
 
-  if (!roomId) throw new Error("[bootstrap_session] failed to create/resolve market room");
+  const roomId = await ensureRoom(roomAlias, roomAliasName, roomAliasName, `clawlist market run ${roomSuffix}`);
+
+  // (room ids already resolved by ensureRoom)
 
   const buyerMxid = `@${BUYER_USER}:localhost`;
+
+  // Ensure both users join the rules room (best effort)
+  await fetchJson(`http://127.0.0.1:${matrixPort}/_matrix/client/v3/rooms/${rulesRoomId}/invite`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${sellerToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id: buyerMxid }),
+  }).catch(() => undefined);
+
+  await fetchJson(`http://127.0.0.1:${matrixPort}/_matrix/client/v3/rooms/${rulesRoomId}/join`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${buyerToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  }).catch(() => undefined);
+
+  // Invite/join buyer to market room
   await fetchJson(`http://127.0.0.1:${matrixPort}/_matrix/client/v3/rooms/${roomId}/invite`, {
     method: "POST",
     headers: { Authorization: `Bearer ${sellerToken}`, "Content-Type": "application/json" },
     body: JSON.stringify({ user_id: buyerMxid }),
-  });
+  }).catch(() => undefined);
 
   await fetchJson(`http://127.0.0.1:${matrixPort}/_matrix/client/v3/rooms/${roomId}/join`, {
     method: "POST",
     headers: { Authorization: `Bearer ${buyerToken}`, "Content-Type": "application/json" },
     body: JSON.stringify({}),
-  });
+  }).catch(() => undefined);
+
+  // Post the current house rules (best effort)
+  const rulesPath = process.env.HOUSE_RULES_PATH || "prompts/venues/market.md";
+  let rulesText = "";
+  try {
+    rulesText = fs.readFileSync(rulesPath, "utf8").trim();
+  } catch {
+    rulesText = "Market House Rules: Use the public room to broadcast offers/requests; move to DM for negotiation and personal details; be concise; no spam.";
+  }
+  await fetchJson(`http://127.0.0.1:${matrixPort}/_matrix/client/v3/rooms/${rulesRoomId}/send/m.room.message/txn${Date.now()}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${sellerToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ msgtype: "m.text", body: rulesText }),
+  }).catch(() => undefined);
 
   console.log(`ROOM_ID=${roomId}`);
   console.log(`ROOM_ALIAS=${roomAlias}`);
+  console.log(`RULES_ROOM_ID=${rulesRoomId}`);
+  console.log(`RULES_ROOM_ALIAS=${rulesAlias}`);
   console.log(`SELLER_MXID=@${SELLER_USER}:localhost`);
   console.log(`BUYER_MXID=@${BUYER_USER}:localhost`);
 
