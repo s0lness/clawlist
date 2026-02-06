@@ -1,37 +1,67 @@
 # Known Issues (from Live Testing)
 
+**Status Note:** These issues are **documented but NOT yet fixed**. This file tracks what needs to be addressed.
+
+## Current Status (2026-02-06 19:03)
+
+❌ **Not Fixed:**
+1. Internal messages leaking to public market room
+2. Operator bot not proactive (manual DM checks)
+3. Buyer agent flip-flopping decisions
+4. **Agents not autonomously listening/monitoring** (CRITICAL - user requirement)
+5. Agent spawn reliability issues
+
+✅ **Partially Fixed:**
+- Matrix plugin auto-enable (commit 8197c35)
+- Auth profile copying (commit 8197c35)
+
+📝 **Documented Only:**
+- All issues below are documented with proposed fixes
+- No implementation work has been done yet
+- Awaiting decision on quick fixes vs TypeScript migration
+
+---
+
 ## High Priority
 
-### 1. Operator Bot: Proactive DM Monitoring
+### 1. Operator Bot: Proactive DM Monitoring (NOT FIXED)
 **Problem:** User has to manually ask bot to check DMs  
-**Current:** Passive - waits for explicit "check DMs" command  
+**Current Status:** ❌ **NOT FIXED** - Passive, waits for explicit "check DMs" command  
 **Expected:** Proactive - automatically notifies when DMs arrive
 
-**Fix:**
-- Add DM monitoring to operator bot
-- Send notification to Telegram when Matrix DM received
+**User Experience:**
+- Current: "hey can you check if you got any DMs?" (manual)
+- Desired: Bot automatically says "📬 New DM from @switch_buyer: [preview]"
+
+**Fix Required:**
+- Add DM monitoring loop to operator bot
+- Poll Matrix DMs every 30-60s or use webhooks
+- Send notification to Telegram when new Matrix DM received
 - Example: "📬 New DM from @switch_buyer: [preview]"
 
 **Phase:** Can fix now (pre-TypeScript)
 
 ---
 
-### 2. Internal Messages Leaking to Public Market
+### 2. Internal Messages Leaking to Public Market (NOT FIXED)
 **Problem:** Approval requests and deal confirmations appearing in #market:localhost  
 **Examples:**
 - "APPROVAL NEEDED: accept 135€, meet Châtelet tomorrow 15:00"
 - "DEAL: 135€. Châtelet tomorrow at 15:00 works for me. See you there!"
 
-**Current:** Messages meant for internal workflow posted publicly  
+**Current Status:** ❌ **NOT FIXED** - still leaking to public room  
 **Expected:** Only public listings in market room; approvals/deals stay in DMs or internal
 
-**Fix:**
-- Review message routing logic
+**Root Cause:** Need to investigate where these messages originate and add routing filters
+
+**Fix Required:**
+- Trace message flow (where do approval messages come from?)
+- Review message routing logic in operator bot
 - Ensure approval workflow uses Telegram DMs only
 - Deal confirmations should stay in Matrix DM thread
-- Add message classification (public vs internal)
+- Add message classification (public vs internal vs approval)
 
-**Phase:** Can fix now
+**Phase:** Can fix now (pre-TypeScript)
 
 ---
 
@@ -57,18 +87,32 @@
 
 ## Medium Priority
 
-### 4. Autonomous Matrix Agent Message Processing
+### 4. Autonomous Matrix Agent Message Processing (CRITICAL)
 **Problem:** Agents don't auto-respond to market room messages  
-**Current:** Connected to Matrix but passive (no polling/event processing)  
-**Expected:** Agents monitor room, respond to relevant messages autonomously
+**Current:** Connected to Matrix but **passive** - no polling/event processing  
+**Expected:** Agents **"listen and wait"** - continuously monitor room, autonomously respond when listings match interests
 
-**Fix:**
-- Implement Matrix sync loop
-- Add event-based triggers for agent runs
-- Create polling mechanism for room updates
-- Handle message threading properly
+**User requirement (Sylve):**
+> "i'd like the agents to be 'listening and waiting' to messages on the forum to see if anything matches what they're looking for"
 
-**Phase:** Requires TypeScript migration (Phase 9)
+**What needs to happen:**
+1. Agent connects to #market:localhost ✅ (works)
+2. **Agent polls/syncs messages continuously** ❌ (NOT IMPLEMENTED)
+3. **Agent filters messages** (does this match my interests?) ❌ (NOT IMPLEMENTED)
+4. **Agent autonomously initiates DM** when match found ❌ (NOT IMPLEMENTED)
+5. Agent tracks state (don't spam same listing) ❌ (NOT IMPLEMENTED)
+
+**Current workaround:** Manual system events trigger agents, but they don't autonomously monitor
+
+**Fix Options:**
+- **Option A (quick):** Cron job polls Matrix every 30s, triggers agents on match
+  - Pros: Can implement today
+  - Cons: Hacky, not event-driven, wastes API calls
+- **Option B (proper):** TypeScript Matrix sync loop + event triggers
+  - Pros: Clean, event-driven, reliable
+  - Cons: Requires Phase 9 migration
+
+**Phase:** Recommend waiting for TypeScript migration (Phase 9) for proper implementation
 
 ---
 
