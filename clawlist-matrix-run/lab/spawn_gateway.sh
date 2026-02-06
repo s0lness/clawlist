@@ -31,6 +31,11 @@ pick_free_port() {
 
 if [ -z "$PORT" ]; then
   PORT=$(pick_free_port 18791)
+else
+  if port_in_use "$PORT"; then
+    echo "[spawn_gateway] ERROR: requested port $PORT is already in use. Stop the existing gateway or omit PORT to auto-pick." >&2
+    exit 1
+  fi
 fi
 
 LOG="$OUT_DIR/gateway_${PROFILE}.log"
@@ -41,8 +46,21 @@ echo "[spawn_gateway] profile=$PROFILE run_id=$RUN_ID port=$PORT log=$LOG"
 OPENCLAW_GATEWAY_PORT="$PORT" OPENCLAW_GATEWAY_TOKEN="$TOKEN" \
   openclaw --profile "$PROFILE" gateway run --port "$PORT" --token "$TOKEN" --force --compact --allow-unconfigured >"$LOG" 2>&1 &
 PID=$!
-echo "$PID" >"$PID_FILE"
 
 echo "$PORT" >"$OUT_DIR/gateway_${PROFILE}.port"
 
 echo "[spawn_gateway] pid=$PID"
+
+# Wait briefly for the port to bind; if it doesn't, surface the log and fail.
+for i in {1..50}; do
+  if port_in_use "$PORT"; then
+    echo "$PID" >"$PID_FILE"
+    exit 0
+  fi
+  sleep 0.2
+done
+
+echo "[spawn_gateway] ERROR: gateway did not bind port $PORT (see $LOG)" >&2
+# best-effort cleanup
+kill "$PID" >/dev/null 2>&1 || true
+exit 1
