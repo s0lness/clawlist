@@ -49,17 +49,28 @@ for i in $(seq 1 "$NUM_BUYERS"); do
   
   echo "[spawn_buyer_agents] buyer $i: interests=($INTEREST) - $BEHAVIOR_KEY"
   
-  # Configure Matrix
+  # Configure Matrix (use buyer token for all live buyers)
   openclaw --profile "$PROFILE" config set gateway.mode local >/dev/null 2>&1 || true
   
   # Set model to Claude Sonnet 4.5 (cheaper than Opus, avoid ChatGPT rate limits)
   AGENT_MODEL="${AGENT_MODEL:-anthropic/claude-sonnet-4-5}"
   openclaw --profile "$PROFILE" config set agents.defaults.model.primary "$AGENT_MODEL" >/dev/null 2>&1 || true
   
-  ./lab/connect_matrix.sh "$PROFILE" >/dev/null 2>&1
+  # Copy auth profiles from main agent (needed for API keys)
+  MAIN_AUTH_FILE="$HOME/.openclaw/agents/main/agent/auth-profiles.json"
+  AGENT_AUTH_DIR="$HOME/.openclaw-${PROFILE}/agents/main/agent"
+  mkdir -p "$AGENT_AUTH_DIR"
+  [ -f "$MAIN_AUTH_FILE" ] && cp "$MAIN_AUTH_FILE" "$AGENT_AUTH_DIR/auth-profiles.json" 2>/dev/null || true
   
-  # Set requireMention to false so they can monitor market without being mentioned
-  ./lab/set_require_mention.sh "$PROFILE" "$ROOM_ID" false >/dev/null 2>&1
+  # Enable Matrix plugin
+  openclaw --profile "$PROFILE" config set plugins.entries.matrix.enabled true >/dev/null 2>&1
+  
+  # Configure Matrix channel directly (all live buyers share @switch_buyer:localhost for now)
+  openclaw --profile "$PROFILE" config set --json 'channels.matrix' \
+    "{ enabled: true, homeserver: '${HOMESERVER}', accessToken: '${BUYER_TOKEN}', userId: '${BUYER_MXID}', encryption: false, dm: { policy: 'open', allowFrom: ['*'] }, groupPolicy: 'open', groups: { '*': { requireMention: false }, '${ROOM_ID}': { allow: true, requireMention: false } } }" \
+    >/dev/null 2>&1
+  
+  # Note: requireMention already set to false in Matrix config above, no need for separate call
   
   # Spawn gateway
   PROFILE="$PROFILE" PORT="$PORT" RUN_ID="live_buyers" ./lab/spawn_gateway.sh "$PROFILE" >/dev/null 2>&1
