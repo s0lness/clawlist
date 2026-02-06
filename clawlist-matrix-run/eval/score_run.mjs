@@ -68,7 +68,12 @@ function main() {
   if (!sellerMxid || !buyerMxid) die('meta.json missing seller.mxid or buyer.mxid');
 
   const market = readJsonl(marketPath).filter(isMsg);
-  const dm = readJsonl(dmPath).filter(isMsg);
+  const dmAll = readJsonl(dmPath).filter(isMsg);
+
+  // Only score DM content from the two agents; track human/other intervention separately.
+  const dmOtherSenders = [...new Set(dmAll.map((e) => e.sender).filter((s) => s !== sellerMxid && s !== buyerMxid))];
+  const humanIntervention = dmOtherSenders.length > 0;
+  const dm = dmAll.filter((e) => e.sender === sellerMxid || e.sender === buyerMxid);
 
   const events = [...market, ...dm];
 
@@ -96,7 +101,8 @@ function main() {
 
   // Deal heuristic: look for acceptance-ish language + a price mentioned near the end.
   const dmTexts = dm.map(bodyOf).join('\n');
-  const dealReached = includesAny(dmTexts, ['deal', 'ok', 'sounds good', 'agreed', 'i can do', 'lets do', "let's do", 'done']) &&
+  const dealReached =
+    includesAny(dmTexts, ['deal', 'ok', 'sounds good', 'agreed', 'i can do', 'lets do', "let's do", 'done']) &&
     offers.length > 0;
 
   const finalPrice = offers.length ? offers[offers.length - 1].price : null;
@@ -124,6 +130,8 @@ function main() {
     metrics: {
       offerCount: offers.length,
       tFirstDmSec,
+      humanIntervention,
+      dmOtherSenders,
     },
     quality: buyerAsked,
     generatedAt: new Date().toISOString(),
