@@ -98,7 +98,7 @@ Definition of Done:
 ### Phase 3 — Spawnable agents attached to the lab
 Goal: treat agents as ephemeral processes.
 
-Status: ✅ done (commit `ba0f4b2`)
+Status: ✅ done (commit `ba0f4b2`; spawn readiness fix `d3429c3`)
 - [x] Add `lab/spawn_gateway.sh` (spawns `openclaw --profile <name> gateway run`, writes logs under `runs/<runId>/out/`).
 - [x] Add `lab/connect_matrix.sh` (configures Matrix channel for the profile using `.local/{bootstrap,secrets}.env`).
 - [x] Add `lab/mission.sh` (injects a system event into the profile gateway).
@@ -115,16 +115,17 @@ Definition of Done:
 ### Phase 4 — Telegram-controlled agent (fresh bot)
 Goal: one agent can be steered by you via Telegram while it participates in Matrix.
 
-Status: 🟨 in progress
-- [x] Create a new Telegram bot via BotFather (currently: `@clawnessbot`).
-- [ ] Decide the Telegram-controlled profile name (recommended: `operator-bot`).
-- [ ] Configure Telegram channel for that profile in a **local-only config step**:
+Status: ✅ done (commit `fa12247` + local-only setup)
+- [x] Create a new Telegram bot via BotFather (token kept local-only).
+- [x] Telegram-controlled profile name: `operator-bot`.
+- [x] Configure Telegram channel for that profile in a **local-only config step**:
   - token stored locally (not in repo)
   - DM allowlist restricted to Sylve
-- [ ] Ensure the same profile also has Matrix enabled and is allowed in `#market:localhost`.
+- [x] Ensure the same profile also has Matrix enabled and is allowed in `#market:localhost`.
 
 Notes:
-- Telegram is currently working for progress pings via the main gateway.
+- Token is stored locally (gitignored) under `.local/` with mode 600.
+- Telegram is also working for progress pings via the main gateway.
 
 Definition of Done:
 - You DM the Telegram bot and see the agent respond and/or change behavior in Matrix.
@@ -133,38 +134,25 @@ Definition of Done:
 Goal: exports keep working even with many rooms/history.
 
 Decision:
-- We will create a **dedicated per-run DM room** explicitly and store its `room_id` in `meta.json`.
+- We create a **dedicated per-run DM room** explicitly and store its `room_id` in `meta.json`.
 
-- [ ] Add `lab/create_dm_room.sh --runId <id>`:
-  - creates a private room
-  - invites buyer/seller
-  - records the DM `room_id` in `runs/<runId>/out/meta.json`
-- [ ] Define `meta.json` minimum schema (so export/score stay aligned):
-  - `runId`
-  - `homeserver`
-  - `marketRoomId`
-  - `dmRoomId`
-  - `seller.mxid`, `buyer.mxid`
-  - `startedAt` (ISO), `endedAt` (ISO) (optional but recommended)
-- [ ] Update scenario orchestration to use this DM room (no heuristics).
-- [ ] Add `lab/export.sh --runId <id> --since <duration>`:
-  - exports market room timeline slice
-  - exports the run DM room
-  - writes `runs/<runId>/out/market.jsonl`, `dm.jsonl`, `meta.json`
+Status: ✅ done (commit `f4a67c2`)
+- [x] `lab/create_dm_room.sh` creates a private DM room and writes `runs/<runId>/out/meta.json` with `dmRoomId`.
+- [x] Export uses `meta.dmRoomId` deterministically (no heuristics).
+- [x] `lab/export_run.sh` writes:
+  - `runs/<runId>/out/market.jsonl`
+  - `runs/<runId>/out/dm.jsonl`
 
 Definition of Done:
-- Export always includes the correct DM room for the run (verified by presence of run seed/missions in the exported DM timeline).
+- Export always includes the correct DM room for the run.
 
 ### Phase 6 — Evaluation scoring
 Goal: measurable outcomes and regressions.
 
-- [ ] Add `eval/score_run.mjs` that reads the exported JSONLs + meta and writes `summary.json`:
-  - deal reached (yes/no)
-  - final price (if any)
-  - constraint violations (seller floor, buyer ceiling, max turns, response timing)
-  - quality signals (asked condition/accessories/logistics; answered)
-  - safety/policy flags (PII requests, weird payment methods, hallucinated logistics)
-- [ ] Add `lab/score.sh --runId <id>` wrapper.
+Status: ✅ done (commit `5322316`; hardening `fd6196c`)
+- [x] `eval/score_run.mjs` reads exported JSONLs + meta and writes `summary.json`.
+- [x] `lab/score.sh` wrapper.
+- [x] Hardening: ignore DM messages not from buyer/seller and flag `metrics.humanIntervention` (commit `fd6196c`).
 
 Definition of Done:
 - `summary.json` exists and can fail a run for hard violations.
@@ -172,14 +160,10 @@ Definition of Done:
 ### Phase 7 — Scenarios + sweeps
 Goal: repeatable benchmarks.
 
-- [ ] Add `scenarios/*.json` (starting with `switch_basic.json`).
-- [ ] Add `lab/run_scenario.sh --scenario <name> --runId <id>` orchestrator:
-  - spawns agents
-  - injects missions from scenario
-  - seeds market
-  - waits or schedules interventions
-  - exports + scores
-- [ ] Add `lab/sweep.sh` to run a batch and aggregate results.
+Status: ✅ done (commit `d0d276e`; docs `3a6f824`)
+- [x] `scenarios/*.json` (starting with `switch_basic.json`).
+- [x] `lab/run_scenario.sh <scenarioName>` orchestrator (runs full pipeline: spawn → mission → seed → stop → export → score).
+- [x] `lab/sweep.sh <scenarioName> <N>` runs a batch and writes an aggregate JSON.
 
 Acceptance:
 - You can run 10 scenarios and get an aggregate success rate.

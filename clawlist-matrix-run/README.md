@@ -70,6 +70,19 @@ Watch live in Element: join `#market:localhost`.
 ./run.sh
 ```
 
+## Sweeps (batch runs)
+
+Run a batch and get an aggregate success rate:
+
+```bash
+# 10 runs of switch_basic
+./lab/sweep.sh switch_basic 10
+
+# results + aggregate under runs/<sweepId>/
+ls -la runs/sweep_*/
+cat runs/sweep_*/aggregate.json
+```
+
 ## Outputs
 
 Per-run artifacts live under:
@@ -77,3 +90,7 @@ Per-run artifacts live under:
 - `runs/<runId>/out/dm.jsonl`
 - `runs/<runId>/out/meta.json`
 - `runs/<runId>/out/summary.json`
+
+Sweep artifacts live under:
+- `runs/<sweepId>/results.jsonl`
+- `runs/<sweepId>/aggregate.json`
