@@ -81,4 +81,12 @@ NODE
 
 chmod 600 "$SECRETS_ENV" 2>/dev/null || true
 
+# Ensure operator joins the stable market room (so Telegram→Matrix posts work without manual invites)
+if [ -n "${ROOM_ID:-}" ]; then
+  curl -fsS -X POST "$HS/_matrix/client/v3/rooms/${ROOM_ID}/join" \
+    -H "Authorization: Bearer ${OPERATOR_TOKEN}" \
+    -H 'Content-Type: application/json' \
+    -d '{}' >/dev/null || true
+fi
+
 echo "[operator_matrix_setup] wrote OPERATOR_TOKEN to $SECRETS_ENV (mxid=$OPERATOR_MXID)" >&2
