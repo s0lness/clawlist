@@ -6,6 +6,10 @@ cd "$ROOT_DIR"
 
 SYNAPSE_DIR="$ROOT_DIR/synapse-data2"
 
+# Local-only secrets cache (gitignored). Used to avoid Synapse login rate limits.
+# Override if needed: SECRETS_ENV=/path/to/file
+SECRETS_ENV="${SECRETS_ENV:-$ROOT_DIR/.local/secrets.env}"
+
 SELLER_USER="switch_seller"
 BUYER_USER="switch_buyer"
 SELLER_PASS="SellerPass123!"
@@ -91,18 +95,40 @@ create_users() {
 }
 
 login() {
-  echo "[bootstrap] logging in"
-
   local base="http://127.0.0.1:${MATRIX_PORT}"
 
+  # Load cached tokens if present
+  if [ -f "$SECRETS_ENV" ]; then
+    # shellcheck disable=SC1090
+    source "$SECRETS_ENV" || true
+  fi
+
+  token_ok() {
+    local token="$1"
+    [ -n "${token:-}" ] || return 1
+    local code
+    code=$(curl -sS -o /dev/null -w "%{http_code}" \
+      -H "Authorization: Bearer ${token}" \
+      "${base}/_matrix/client/v3/account/whoami" || true)
+    [ "$code" = "200" ]
+  }
+
+  if token_ok "${SELLER_TOKEN:-}" && token_ok "${BUYER_TOKEN:-}"; then
+    echo "[bootstrap] using cached matrix tokens from $SECRETS_ENV" >&2
+    export SELLER_TOKEN BUYER_TOKEN
+    return 0
+  fi
+
+  echo "[bootstrap] logging in" >&2
+
   # Synapse can rate-limit rapid repeated logins during dev runs.
-  # Handle 429 with a short exponential backoff.
+  # Handle 429 with exponential backoff.
   login_one() {
     local user="$1" pass="$2" label="$3"
     local payload
     payload='{"type":"m.login.password","identifier":{"type":"m.id.user","user":"'"${user}"'"},"password":"'"${pass}"'"}'
 
-    local attempt=1 max_attempts=6 sleep_s=1
+    local attempt=1 max_attempts=8 sleep_s=1
     local tmp
     tmp="$(mktemp)"
     while [ "$attempt" -le "$max_attempts" ]; do
@@ -118,9 +144,19 @@ login() {
       fi
 
       if [ "$code" = "429" ]; then
+        local ra
+        ra=$(node -e 'try{const j=JSON.parse(process.argv[1]); process.stdout.write(String(j.retry_after_ms||""))}catch{process.stdout.write("")}' "$(cat "$tmp")" 2>/dev/null || true)
+        if [ -n "$ra" ]; then
+          # cap to 60s so we don't hang forever in dev; user can rerun later
+          local ra_s=$(( (ra + 999) / 1000 ))
+          if [ "$ra_s" -gt 60 ]; then ra_s=60; fi
+          sleep_s="$ra_s"
+        fi
         echo "[bootstrap] ${label} login rate-limited (429). retrying in ${sleep_s}s (attempt ${attempt}/${max_attempts})" >&2
         sleep "$sleep_s"
+        # backoff after the server hint too
         sleep_s=$((sleep_s * 2))
+        if [ "$sleep_s" -gt 60 ]; then sleep_s=60; fi
         attempt=$((attempt + 1))
         continue
       fi
@@ -131,7 +167,7 @@ login() {
       return 1
     done
 
-    echo "[bootstrap] ${label} login failed after ${max_attempts} attempts (still rate-limited)" >&2
+    echo "[bootstrap] ${label} login failed after ${max_attempts} attempts" >&2
     cat "$tmp" >&2 || true
     rm -f "$tmp"
     return 1
@@ -148,6 +184,15 @@ login() {
     echo "failed to get access tokens" >&2
     exit 1
   fi
+
+  # Cache for next runs
+  mkdir -p "$(dirname "$SECRETS_ENV")"
+  umask 077
+  {
+    echo "SELLER_TOKEN=$SELLER_TOKEN"
+    echo "BUYER_TOKEN=$BUYER_TOKEN"
+  } >"$SECRETS_ENV"
+  chmod 600 "$SECRETS_ENV" 2>/dev/null || true
 
   export SELLER_TOKEN BUYER_TOKEN
 }
