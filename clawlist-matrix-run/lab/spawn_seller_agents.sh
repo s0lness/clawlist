@@ -67,6 +67,11 @@ for i in $(seq 1 "$NUM_SELLERS"); do
   
   # Configure Matrix for this profile (use seller token for now, could create dedicated users)
   openclaw --profile "$PROFILE" config set gateway.mode local >/dev/null 2>&1 || true
+  
+  # Set model to Claude Sonnet 4.5 (cheaper than Opus, avoid ChatGPT rate limits)
+  AGENT_MODEL="${AGENT_MODEL:-anthropic/claude-sonnet-4-5}"
+  openclaw --profile "$PROFILE" config set agents.defaults.model.primary "$AGENT_MODEL" >/dev/null 2>&1 || true
+  
   ./lab/connect_matrix.sh "$PROFILE" >/dev/null 2>&1
   
   # Set requireMention to false so they can respond without being mentioned

@@ -76,6 +76,9 @@ Spawn actual agents with different personalities that:
 # Start 3 sellers + 2 buyers with different behaviors
 make live-agents-start SELLERS=3 BUYERS=2
 
+# Use a specific model (default: claude-sonnet-4-5)
+AGENT_MODEL=anthropic/claude-3-5-haiku make live-agents-start SELLERS=3 BUYERS=2
+
 # Check what's running
 make live-agents-status
 

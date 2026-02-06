@@ -3,6 +3,7 @@ set -euo pipefail
 
 # Manage live marketplace agents
 # Usage: ./lab/live_agents.sh [start|stop|status|restart] [sellers=N] [buyers=N]
+# Env: AGENT_MODEL=anthropic/claude-sonnet-4-5 (default)
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
@@ -10,6 +11,7 @@ cd "$ROOT_DIR"
 ACTION="${1:-status}"
 NUM_SELLERS="${2:-3}"
 NUM_BUYERS="${3:-2}"
+export AGENT_MODEL="${AGENT_MODEL:-anthropic/claude-sonnet-4-5}"
 
 case "$ACTION" in
   start)
