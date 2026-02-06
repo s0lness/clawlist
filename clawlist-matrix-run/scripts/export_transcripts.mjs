@@ -56,12 +56,14 @@ async function listJoinedRooms(token) {
 }
 
 async function findDmRoomId() {
-  // Heuristic: the DM room is any joined room that isn't the market room and is shared by both users.
+  // Prefer explicit DM room id from meta when provided (deterministic).
+  if (meta.dmRoomId) return meta.dmRoomId;
+
+  // Fallback heuristic: any joined room that isn't the market room and is shared by both users.
   const sellerRooms = new Set(await listJoinedRooms(sellerToken));
   const buyerRooms = new Set(await listJoinedRooms(buyerToken));
 
   const shared = [...sellerRooms].filter((r) => buyerRooms.has(r) && r !== marketRoomId);
-  // If multiple, pick the newest-ish by checking last event id via /messages small pull.
   if (shared.length === 0) return null;
   return shared[0];
 }
