@@ -31,6 +31,10 @@ openclaw --profile "$PROFILE" config set --json 'channels.telegram' \
 
 echo "[operator_setup] configured Telegram for profile=$PROFILE (DM allowlist=${ALLOW_FROM_ID})"
 
+# Set model to Claude Sonnet to avoid ChatGPT rate limits
+OPERATOR_MODEL="${OPERATOR_MODEL:-anthropic/claude-sonnet-4-5}"
+openclaw --profile "$PROFILE" config set agents.defaults.model.primary "$OPERATOR_MODEL" >/dev/null 2>&1 || true
+
 # Matrix: use a dedicated operator Matrix user (created via operator_matrix_setup.sh)
 ./lab/operator_matrix_setup.sh >/dev/null
 # shellcheck disable=SC1090
