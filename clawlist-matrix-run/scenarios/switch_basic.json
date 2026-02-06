@@ -1,0 +1,19 @@
+{
+  "name": "switch_basic",
+  "item": "Nintendo Switch",
+  "marketRoomAlias": "#market:localhost",
+  "seller": {
+    "profile": "switch-seller",
+    "anchorPrice": 200,
+    "floorPrice": 150
+  },
+  "buyer": {
+    "profile": "switch-buyer",
+    "startOffer": 120,
+    "ceilingPrice": 150
+  },
+  "durationSec": 120,
+  "seed": {
+    "bodyTemplate": "RUN_ID:{RUN_ID} SELLING: nintendo switch — asking 200€ (can negotiate). DM me."
+  }
+}
