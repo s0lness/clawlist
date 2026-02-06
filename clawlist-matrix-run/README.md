@@ -1,11 +1,8 @@
 # Clawlist Matrix Lab (persistent Synapse + Element) + Scenario Harness
 
-This folder contains two related ways to work:
+This folder contains a **persistent Matrix lab**: keep Synapse + Element running, then spawn agents/runs.
 
-1) **Persistent Matrix lab** (recommended): keep Synapse + Element running, then spawn agents/runs.
-2) Legacy `run.sh` harness (older, more brittle).
-
-## Persistent lab (recommended)
+## Lab setup
 
 ### Start the lab infra (local-only)
 
@@ -72,12 +69,6 @@ Watch live in Element: join `#market:localhost`.
 
 ```bash
 ./lab/cleanup_ports.sh
-```
-
-## Legacy: one-shot harness
-
-```bash
-./run.sh
 ```
 
 ## Sweeps (batch runs)
