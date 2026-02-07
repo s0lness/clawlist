@@ -8,13 +8,31 @@ function bodyOf(e) {
     return String(e?.content?.body || '');
 }
 function parseEuroPrice(text) {
-    const m = text.toLowerCase().match(/(?:^|[^0-9])(\d{2,3})\s*(€|eur|euros)?\b/);
-    if (!m)
-        return null;
-    const n = Number(m[1]);
-    if (!Number.isFinite(n))
-        return null;
-    return n;
+    const lower = text.toLowerCase();
+    // Strategy 1: Number with explicit currency (most reliable)
+    const withCurrency = lower.match(/(\d{2,3})\s*€/);
+    if (withCurrency) {
+        const n = Number(withCurrency[1]);
+        if (Number.isFinite(n))
+            return n;
+    }
+    // Strategy 2: Common price patterns
+    // - "take 135", "do 150", "offer 120", "asking 200", "DEAL: 150", "pay 135", etc.
+    const patterns = [
+        /(?:take|do|offer|asking|deal|pay|accept|budget|price|cost|lowest|highest|maximum|minimum|floor|ceiling)[\s:]+(\d{2,3})\b/,
+        /(\d{2,3})[\s]+(?:is my|is the|cash|euros?)\b/,
+    ];
+    for (const pattern of patterns) {
+        const match = lower.match(pattern);
+        if (match) {
+            const n = Number(match[1]);
+            // Filter out obviously wrong numbers (times use colons, model numbers have letters nearby)
+            if (Number.isFinite(n) && n >= 10 && n <= 999) {
+                return n;
+            }
+        }
+    }
+    return null;
 }
 function includesAny(text, arr) {
     const t = text.toLowerCase();

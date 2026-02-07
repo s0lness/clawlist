@@ -2,7 +2,7 @@
 
 **Status Note:** These issues are **documented but NOT yet fixed**. This file tracks what needs to be addressed.
 
-## Current Status (2026-02-06 19:03)
+## Current Status (2026-02-07 19:07)
 
 ❌ **Not Fixed:**
 1. Internal messages leaking to public market room
@@ -10,21 +10,79 @@
 3. Buyer agent flip-flopping decisions
 4. **Agents not autonomously listening/monitoring** (CRITICAL - user requirement)
 5. Agent spawn reliability issues
+6. **Scoring: offer attribution bug** (NEW - found during Phase 9 testing)
 
-✅ **Partially Fixed:**
+✅ **Fixed:**
 - Matrix plugin auto-enable (commit 8197c35)
 - Auth profile copying (commit 8197c35)
+- Gateway cleanup (commit a516069) - no longer kills self
+- Port conflicts (commit a516069) - auto-pick free ports
+- Price parsing (commit TBD) - improved regex, fewer false positives
 
 📝 **Documented Only:**
 - All issues below are documented with proposed fixes
-- No implementation work has been done yet
-- Awaiting decision on quick fixes vs TypeScript migration
+- Phase 9 (TypeScript migration) complete
+- Scoring bugs exist but don't affect agent behavior
 
 ---
 
 ## High Priority
 
-### 1. Operator Bot: Proactive DM Monitoring (NOT FIXED)
+### 1. Scoring: Offer Attribution Bug (PARTIAL FIX)
+**Problem:** Price parser misattributes quotes as offers  
+**Discovered:** 2026-02-07 during Phase 9 validation testing  
+**Impact:** Scoring reports false violations; agents work correctly
+
+**Example:**
+```
+Buyer: "Would you take 120€?"
+Seller: "120€ is too low"  ← Parser thinks seller OFFERED 120€ 
+Seller: "I can do 150€"
+```
+
+**Result:** Scorer reports `SELLER_BELOW_FLOOR:120` violation (false positive)
+
+**Current Status:** ✅ **Partially fixed** (commit TBD)
+- Improved regex: requires currency context (€, "take", "offer", "deal", etc.)
+- Removed false positives: times (19:15), model numbers (HAC-001)
+- **Still broken:** Quote attribution ("120€ is too low" counted as offer)
+
+**Root Cause:**
+- `parseEuroPrice()` extracts all mentions of prices
+- No context awareness (is this an offer or a quote/rejection?)
+- Need to distinguish "I offer X" from "X is too low"
+
+**Fix Options:**
+
+**Option A: Context-aware parsing (proper fix)**
+```typescript
+// Only count as offer if:
+// - "take/offer/do/deal/accept X"
+// - NOT preceded by "no/too low/rejected"
+```
+
+**Option B: Semantic analysis (overkill)**
+- Use sentiment: negative context = rejection, not offer
+
+**Option C: Attribution by speaker intent (best)**
+```typescript
+// Seller offers: positive framing ("I can do X", "X works")
+// Buyer offers: question/proposal ("would you take X?", "how about X?")
+// Rejections: negative framing ("X is too low", "no to X")
+```
+
+**Recommended:** Option A (add negative context filter)
+
+**Impact if not fixed:**
+- False violation reports
+- Success rate metrics unreliable
+- Agents still negotiate correctly (scoring is post-hoc)
+
+**Phase:** Can fix in Phase 9.5 with unit tests
+
+---
+
+### 2. Operator Bot: Proactive DM Monitoring (NOT FIXED)
 **Problem:** User has to manually ask bot to check DMs  
 **Current Status:** ❌ **NOT FIXED** - Passive, waits for explicit "check DMs" command  
 **Expected:** Proactive - automatically notifies when DMs arrive

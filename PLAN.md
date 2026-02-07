@@ -202,7 +202,8 @@ Definition of Done:
 
 ## Phase 9 — Consolidate shell scripts into TypeScript
 
-**Status:** ✅ Approved (2026-02-06)  
+**Status:** ✅ **COMPLETE** (2026-02-07)  
+**Commits:** `a516069` (migration), `23be6a8` (cleanup)  
 **Decision:** Migrate all orchestration to TypeScript for type safety, maintainability, and consistency.
 
 ### Why
@@ -303,4 +304,49 @@ cleanup:
 6. `sweep.ts`, `run-human-seller.ts` (variant orchestrators)
 7. Update Makefile + README, delete old files
 8. Build + smoke test
+
+### Implementation Summary (Actual)
+
+**Created 14 TypeScript modules (~800 lines):**
+- `src/common.ts` (180 lines) - utilities
+- `src/matrix-api.ts` (270 lines) - typed Matrix client
+- `src/openclaw.ts` (115 lines) - CLI wrapper
+- `src/gateway.ts` (240 lines) - lifecycle + cleanup
+- `src/docker.ts` (100 lines) - Docker Compose
+- `src/scenario.ts` (95 lines) - scenario loading
+- `src/bootstrap.ts` (165 lines) - user/room setup
+- `src/dm-room.ts` (75 lines) - DM room creation
+- `src/export.ts` (90 lines) - transcript export
+- `src/score.ts` (255 lines) - evaluation
+- `src/run-scenario.ts` (200 lines) - orchestrator
+- `src/sweep.ts` (165 lines) - batch testing
+- `src/cli-{up,down,bootstrap}.ts` (30 lines) - CLI wrappers
+
+**Deleted 20 files:**
+- 16 bash scripts (`lab/*.sh`)
+- 3 JavaScript files (`*.mjs`)
+- 1 scenario converter
+
+**Testing:**
+- 2 smoke tests passed (20s, 30s)
+- 1 full test passed (120s)
+- End-to-end workflow confirmed working
+
+**Bugs fixed:**
+1. Gateway cleanup killing self (excluded parent PID)
+2. Port conflicts (auto-pick free ports)
+3. CLI flag mismatch (`--gateway` → `--url`)
+4. Auth tokens missing (added token parameter)
+5. Gateway lock timeout (profile cleanup before spawn)
+6. Price parsing false positives (improved regex)
+
+**Known issues:**
+- Scoring: offer attribution bug (quotes counted as offers)
+- Live sandbox: not yet migrated (13 bash files kept)
+- Human-seeded mode: not yet migrated
+
+**Documentation:**
+- `TYPESCRIPT_MIGRATION.md` - complete migration log
+- `README.md` - rewritten for TypeScript workflow
+- `Makefile` - updated for new commands
 
