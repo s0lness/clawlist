@@ -1,53 +1,40 @@
-.PHONY: up down bootstrap scenario sweep cleanup human-seller live-start live-stop live-status live-populate live-agents live-agents-start live-agents-stop live-agents-status
+.PHONY: build up down bootstrap scenario sweep cleanup live-start live-stop live-status live-populate live-agents live-agents-start live-agents-stop live-agents-status
 
-# Usage examples:
-#   make up
-#   make bootstrap
-#   make scenario SCENARIO=switch_basic DURATION_SEC=120
-#   make sweep SCENARIO=switch_basic N=10
-#   make human-seller DURATION_SEC=300
-#
-# Live sandbox mode:
-#   make live-start [POPULATE=8]
-#   make live-status
-#   make live-populate [N=5]
-#   make live-stop
-#
-# Live agents (with behaviors):
-#   make live-agents-start [SELLERS=3] [BUYERS=2]
-#   make live-agents-status
-#   make live-agents-stop
+# Build TypeScript first
+build:
+	npm run build
 
+# Docker/Infrastructure
+up: build
+	node dist/cli-up.js
+
+down:
+	node dist/cli-down.js
+
+bootstrap: build
+	node dist/cli-bootstrap.js
+
+cleanup:
+	@echo "[cleanup] TypeScript migration: cleanup handled by gateway.ts"
+	@# Old bash cleanup is no longer needed
+
+# Scenario testing
 SCENARIO ?= switch_basic
 RUN_ID ?= $(shell date +%Y%m%d_%H%M%S)
 DURATION_SEC ?= 120
 N ?= 10
+
+scenario: build
+	DURATION_SEC=$(DURATION_SEC) RUN_ID=$(RUN_ID) node dist/run-scenario.js $(SCENARIO)
+
+sweep: build
+	node dist/sweep.js $(SCENARIO) $(N)
+
+# Live sandbox mode (kept bash for now - will migrate later)
 POPULATE ?= 0
 SELLERS ?= 3
 BUYERS ?= 2
 
-up:
-	./lab/up.sh
-
-down:
-	./lab/down.sh
-
-bootstrap:
-	./lab/bootstrap.sh
-
-cleanup:
-	./lab/cleanup_ports.sh
-
-scenario:
-	RUN_ID=$(RUN_ID) DURATION_SEC=$(DURATION_SEC) ./lab/run_scenario.sh $(SCENARIO)
-
-sweep:
-	SCENARIO=$(SCENARIO) N=$(N) ./lab/sweep.sh $(SCENARIO) $(N)
-
-human-seller:
-	RUN_ID=$(RUN_ID) DURATION_SEC=$(DURATION_SEC) ./lab/run_human_seeded_seller.sh
-
-# Live sandbox mode
 live-start:
 	POPULATE=$(POPULATE) ./lab/live_start.sh
 
@@ -72,3 +59,7 @@ live-agents-stop:
 
 live-agents-status:
 	./lab/live_agents.sh status
+
+# Legacy human-seller mode (kept bash for now)
+human-seller:
+	RUN_ID=$(RUN_ID) DURATION_SEC=$(DURATION_SEC) ./lab/run_human_seeded_seller.sh
