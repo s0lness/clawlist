@@ -201,9 +201,7 @@ Goal: Replace bash/JS sprawl with maintainable TypeScript modules.
 
 ---
 
-## Future phases (backlog)
-
-### Phase 10 — Security hardening & agent loyalty
+## Phase 10 — Security hardening & agent loyalty
 Goal: Prevent agents from being manipulated to betray owner's interests.
 
 **Attack vectors:**
@@ -245,208 +243,25 @@ Goal: Prevent agents from being manipulated to betray owner's interests.
 
 **See**: RESEARCH.md for full security research agenda
 
-### Phase 11 — Structured protocol (agent-native commerce)
-Goal: Enable agents to negotiate using machine-readable data instead of natural language.
+---
 
-**Design principles:**
-- Listings as structured data (not prose)
-- Automatic constraint matching
-- Multiple protocol modes (agents can choose)
+## Research Phases (see RESEARCH.md)
 
-**Protocol features:**
+Phases 11+ are **research questions**, not engineering tasks. They live in **RESEARCH.md**.
 
-1. **Structured listings**:
-   ```json
-   {
-     "item": "nintendo_switch",
-     "condition": "good",
-     "price": 180,
-     "negotiable": true,
-     "minPrice": 150,
-     "accessories": ["charger", "case"],
-     "verification": "photo_hash_abc123"
-   }
-   ```
+When research reveals concrete features we need to build, we'll add them back to PLAN.md as implementation phases.
 
-2. **Buyer mandates**:
-   ```json
-   {
-     "interests": ["nintendo_switch", "ps5"],
-     "maxPrice": 200,
-     "requiredCondition": "good",
-     "mustHaveAccessories": ["charger"],
-     "ownerSignature": "0x..."
-   }
-   ```
+**Examples of research topics** (see RESEARCH.md for full details):
+- Structured protocol (sealed-bid, instant-match)
+- Strategy comparison (aggressive vs patient, parallel negotiation)
+- Model comparison (Claude vs GPT vs Gemini)
+- Buyer coalitions, arbitrage chains, futures markets
+- Complex auction mechanisms (VCG, combinatorial)
 
-3. **Negotiation protocols**:
-   - **Natural language** (baseline): Current implementation
-   - **Sealed-bid**: Both reveal true limits simultaneously, framework computes deal
-   - **Double auction**: Automatic market-clearing price
-   - **Instant match**: If constraints compatible, accept immediately (no haggling)
-
-4. **Agent choice**:
-   - Agents can negotiate in any protocol mode
-   - Framework tracks which protocol was used
-   - Measure efficiency by protocol type
-
-**Acceptance:**
-- Agents can post structured listings
-- Agents can negotiate in sealed-bid mode
-- Score.ts extracts protocol type and efficiency metrics
-- Structured protocol shows measurable advantage (speed/cost/success) vs. natural language
-
-**See**: PROTOCOL.md for full specification, RESEARCH.md for research questions
-
-### Phase 12 — Strategy research framework
-Goal: Discover which negotiation strategies are most effective, including agent-native strategies not present in human marketplaces.
-
-**Capabilities:**
-
-1. **Buyer intent signaling**:
-   - Buyers can post "wanted" ads to #market:localhost (structured or natural language)
-   - Example: `{wanted: "nintendo_switch", maxPrice: 200, activeUntil: "2026-02-10"}`
-   - Enables two-way discovery (sellers can approach buyers)
-   - Tests active vs passive discovery strategies
-
-2. **Strategy parameterization**:
-   - **Negotiation styles**: aggressive (lowball), patient (slow concessions), fair-offer-first, transparent (reveal true limits)
-   - **Discovery tactics**: active polling (check every 1min), passive (wait for sellers), wanted-ad broadcasting
-   - **Contact selectivity**: message everyone, filter by price, wait for best match
-   - **Protocol choice**: natural language, sealed-bid, instant-match
-   - **Parallel coordination**: negotiate with 1 seller vs. 5 simultaneously
-
-3. **Goal-based success metrics**:
-   - **Mission achievement**: Did buyer get target item? ✓/✗
-   - **Price efficiency**: Price paid vs. budget (lower is better)
-   - **Time efficiency**: Time to close deal (faster is better)
-   - **Success rate**: % of runs where agent achieved goal
-   - **Token cost**: API calls per deal (efficiency)
-   - **Novel strategies**: Did agent do something unexpected?
-
-4. **Statistical comparison**:
-   - Run 20+ simulations per strategy variant
-   - Aggregate metrics by strategy type
-   - Statistical significance testing (t-test, ANOVA)
-   - Strategy → outcome correlation analysis
-   - Identify emergent behaviors (agent-native patterns)
-
-5. **Human baseline**:
-   - Run same scenarios with human operator (via Telegram)
-   - Compare human vs. agent performance
-   - Measure: speed, price, success rate, satisfaction
-
-**Acceptance:**
-- Can define strategies in scenario configs (e.g., `strategy: "aggressive_parallel"`)
-- Sweep produces strategy-segmented summary (CSV/JSON)
-- Clear winner/loser strategies identified with statistical confidence
-- At least one agent-native strategy outperforms human mimicry baseline
-
-**Research questions answered:**
-- Do agent-native strategies (parallel, transparent, instant-match) beat human mimicry?
-- Does buyer intent signaling improve outcomes?
-- Which protocol (natural language vs. structured) produces better deals?
-- Can we predict strategy success from market conditions?
-
-**See**: RESEARCH.md for full research agenda
-
-### Phase 13 — Model comparison framework
-Goal: Compare how different LLMs (Claude, GPT, Gemini) perform as marketplace agents.
-
-**Research questions:**
-
-1. **Negotiation style differences**:
-   - Does GPT-4 negotiate more aggressively than Claude?
-   - Which model concedes faster?
-   - Social dynamics: rapport-building vs transactional?
-
-2. **Performance by role**:
-   - Which model is better as buyer? As seller?
-   - Price efficiency: which gets better deals?
-   - Success rate by model
-
-3. **Security/manipulation resistance**:
-   - Which model is more vulnerable to prompt injection?
-   - Can GPT sellers manipulate Claude buyers (or vice versa)?
-   - Cross-model adversarial testing
-
-4. **Efficiency metrics**:
-   - Token usage per deal (cost comparison)
-   - Time to close (response latency)
-   - Message count to agreement
-
-5. **Strategy diversity**:
-   - Do different models discover different strategies?
-   - Novel behaviors unique to each model?
-   - Training data influence on negotiation patterns?
-
-6. **Cross-model dynamics**:
-   - GPT buyer vs Claude seller: who wins?
-   - Do mixed pairs behave differently than same-model pairs?
-   - Interaction effects (model A beats model B at buying, loses at selling)
-
-**Implementation:**
-
-1. **Scenario model selection**:
-   ```json
-   {
-     "agents": {
-       "seller": {
-         "model": "anthropic/claude-sonnet-4-5",
-         "mission": "Sell Nintendo Switch, min 150€"
-       },
-       "buyer": {
-         "model": "openai/gpt-4",
-         "mission": "Buy Nintendo Switch, max 200€"
-       }
-     }
-   }
-   ```
-
-2. **Model permutation sweeps**:
-   - Same-model baseline: Claude vs Claude, GPT vs GPT, Gemini vs Gemini
-   - Cross-model matchups: All buyer/seller model combinations
-   - 20+ runs per permutation for statistical significance
-
-3. **Enhanced scoring**:
-   - Extract model info from meta.json
-   - Segment results by buyer model, seller model, pair
-   - Compute win rate, avg price, efficiency by model
-
-4. **Aggregate analysis**:
-   ```json
-   {
-     "modelStats": {
-       "claude-sonnet-4-5": {
-         "asBuyer": {"winRate": 0.75, "avgPrice": 165, "avgTokens": 2500},
-         "asSeller": {"winRate": 0.60, "avgPrice": 175, "avgTokens": 2200}
-       },
-       "gpt-4": {
-         "asBuyer": {"winRate": 0.80, "avgPrice": 160, "avgTokens": 3000},
-         "asSeller": {"winRate": 0.50, "avgPrice": 180, "avgTokens": 2800}
-       }
-     },
-     "crossModelMatchups": {
-       "claude_buyer_vs_gpt_seller": {"winRate": 0.70, "avgPrice": 168},
-       "gpt_buyer_vs_claude_seller": {"winRate": 0.85, "avgPrice": 158}
-     }
-   }
-   ```
-
-**Acceptance:**
-- Scenarios can specify model per agent
-- Sweep supports model permutation testing
-- Aggregate stats show model performance breakdown
-- Statistical significance testing (t-test) for model comparisons
-- At least one clear winner identified (e.g., "GPT-4 is 15% better as buyer")
-
-**Potential findings:**
-- "Claude is more patient, gets better prices but takes longer"
-- "GPT-4 is more aggressive, higher success rate but overpays"
-- "Gemini is vulnerable to prompt injection (40% manipulation success)"
-- "Cross-model pairs negotiate 30% faster than same-model pairs"
-
-**See**: RESEARCH.md for full model comparison research agenda
+**Flow:**
+1. Research question in RESEARCH.md
+2. Experiment reveals "we need feature X"
+3. Add "Phase N: Implement X" to PLAN.md
 
 ---
 

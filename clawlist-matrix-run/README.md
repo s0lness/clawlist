@@ -245,10 +245,31 @@ make cleanup
 
 ## Documentation
 
-- **PLAN.md** - Development roadmap (Phases 0-9)
+### Engineering & Research Tracks
+
+This project has two parallel tracks:
+
+**PLAN.md** - Engineering backlog (what to build)
+- Concrete implementation phases (Phase 0-10)
+- Code tasks, infrastructure setup, tooling
+- When research reveals a needed feature → add it here
+
+**RESEARCH.md** - Research agenda (what to discover)
+- Research questions and hypotheses
+- Experimental protocols
+- Topics: agent-native commerce, security, strategy comparison, model comparison, coalitions, etc.
+
+**Flow:** Research question → experiment → "we need feature X" → add Phase to PLAN.md
+
+### Other Docs
+
+- **PROTOCOL.md** - Structured protocol specification (sealed-bid, instant-match, security model)
+- **ARCHITECTURE.md** - Agent Autonomy Principle and design patterns
 - **TYPESCRIPT_MIGRATION.md** - Phase 9 migration details
 - **ISSUES.md** - Known issues from live testing
 - **LIVE_MODE.md** - Live sandbox usage guide
+- **SECURITY.md** - Secrets management and security practices
+- **REPO_REVIEW.md** - Comprehensive audit and grading
 
 ## Related
 
