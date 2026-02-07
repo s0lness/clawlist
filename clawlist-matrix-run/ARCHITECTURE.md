@@ -162,4 +162,19 @@ Let the agent identify what's urgent based on context.
 
 **Fix:** Deleted matrix-poller.ts, documented this principle to prevent future mistakes.
 
-**Rule:** If you're writing code that "decides FOR the agent," stop and rethink.
+**2026-02-08:** Realized cron polling (Phase 9.4) is also unnecessary!
+- Buyers already join #market:localhost at startup
+- Matrix plugin delivers ALL messages as events automatically
+- Agents receive messages in conversational context
+- Agents autonomously evaluate and decide whether to engage
+- **No external polling needed** - agents are fully event-driven
+
+**Even better approach:** Agents are purely reactive to Matrix events.
+- Matrix delivers messages → capability
+- Agent evaluates relevance → decision
+- Agent decides to DM or ignore → decision
+- **Zero orchestration required**
+
+See `lab/spawn_buyer_agents.sh` for working fully-autonomous implementation.
+
+**Rule:** If you're writing code that "decides FOR the agent" OR "orchestrates the agent's checks," stop and rethink. The agent should be event-driven whenever possible.

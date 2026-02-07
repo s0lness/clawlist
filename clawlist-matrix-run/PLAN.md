@@ -166,24 +166,38 @@ Goal: Replace bash/JS sprawl with maintainable TypeScript modules.
 
 **Status**: Complete (commits a516069, 23be6a8, d67ebe8)
 
-### Phase 9.4 — Autonomous agent polling (architecture fix)
-Goal: Buyer agents autonomously discover market listings using OpenClaw cron.
+### Phase 9.4 — Autonomous agent polling ❌ OBSOLETE
 
-**Principle**: External systems provide **capabilities**, agents make **decisions**.
+**Status**: Not needed - agents are already fully autonomous.
 
-- [ ] Each buyer agent gets OpenClaw cron job (every 5min):
-  - Cron triggers agent: "Check #market:localhost for items matching your interests"
-  - Agent uses Matrix plugin to read room
-  - Agent evaluates relevance to their mission
-  - Agent decides whether to DM seller
-- [ ] Test with multiple buyer agents checking market periodically
-- [ ] Validate agents exhibit autonomous discovery behavior
+**Why obsolete:**
+- Buyers already join #market:localhost and receive all messages via Matrix plugin
+- Matrix plugin delivers events automatically (no polling needed)
+- Buyer missions instruct: "MONITOR #market:localhost continuously"
+- Agents autonomously evaluate each message and decide whether to engage
+- **This is ALREADY implemented** in `spawn_buyer_agents.sh`
 
-**Deleted wrong approach** (commit 1b84d01):
-- matrix-poller.ts: external script filtered messages by keywords
-- Violated autonomy principle (script made decisions FOR agents)
+**What we learned:**
+- Deleted wrong approach (commit 1b84d01): matrix-poller.ts violated autonomy
+- Initially thought we needed cron polling to replace it
+- Realized Matrix plugin IS the capability - agents make decisions autonomously
+- **Agent Autonomy Principle validated**: External system (Matrix) provides events, agent evaluates/decides
 
-**See**: ARCHITECTURE.md for full principle documentation
+**Current buyer flow (already working):**
+1. Buyer joins #market:localhost at startup
+2. Matrix plugin delivers every market message as event
+3. Agent receives message in context
+4. Agent evaluates: "Is this relevant to my interests?"
+5. Agent decides: DM seller or ignore
+6. **No external orchestration needed!**
+
+**What to test instead:**
+- [x] Buyers receive market messages automatically (verified in spawn_buyer_agents.sh)
+- [ ] Validate response time (do buyers engage quickly?)
+- [ ] Validate relevance filtering (do buyers only engage with relevant listings?)
+- [ ] Measure success rate in live tests
+
+**See**: ARCHITECTURE.md for Agent Autonomy Principle
 
 ---
 

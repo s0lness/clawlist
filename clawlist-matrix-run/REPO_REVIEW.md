@@ -68,25 +68,34 @@ sweep.ts          - Batch testing
 
 ---
 
-### ⚠️ Phase 9.4 — Autonomous Agent Polling (IN PROGRESS)
+### ✅ Phase 9.4 — Autonomous Agent Polling (OBSOLETE)
 
-**Grade: C (Documented but not implemented)**
+**Grade: N/A (Not needed)**
 
-**What's done:**
-- ARCHITECTURE.md documents Agent Autonomy Principle
-- Wrong approach deleted (matrix-poller.ts, run-poller.ts)
-- Correct approach specified in PLAN.md
+**Status:** Agents are already fully autonomous - no polling needed!
 
-**What's missing:**
-- [ ] No cron jobs actually created for buyer agents
-- [ ] No test validating agents check market periodically
-- [ ] No implementation of "agent reads room → evaluates → decides → DMs"
+**What we learned:**
+- ARCHITECTURE.md documents Agent Autonomy Principle ✅
+- Wrong approach deleted (matrix-poller.ts) ✅
+- **Discovery (2026-02-08):** Buyers already receive Matrix events automatically
+- Matrix plugin delivers all #market:localhost messages to agents
+- Agents autonomously evaluate each message and decide to engage
+- **No cron polling needed** - agents are event-driven
 
-**Blockers:**
-None! Just needs implementation.
+**Current implementation:**
+- `lab/spawn_buyer_agents.sh` already implements fully autonomous buyers
+- Buyers join #market:localhost at startup
+- Matrix plugin delivers messages automatically
+- Mission instructs: "MONITOR #market:localhost continuously"
+- Agents decide when to DM sellers
+
+**What to validate:**
+- [ ] Test buyer response time to new listings
+- [ ] Validate relevance filtering (do buyers only engage with relevant items?)
+- [ ] Measure success rate
 
 **Recommendation:**
-Implement next. This is the critical path to proving autonomous agent behavior.
+Phase 9.4 obsolete. Move directly to Phase 10 (security hardening) or Phase 14 (buyer coalitions).
 
 ---
 
