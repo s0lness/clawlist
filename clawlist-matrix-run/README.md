@@ -275,6 +275,8 @@ This project has two parallel tracks:
 
 - **PROTOCOL.md** - Structured protocol specification (sealed-bid, instant-match, security model)
 - **ARCHITECTURE.md** - Agent Autonomy Principle and design patterns
+- **FRIENDS_DEPLOYMENT.md** - Simple deployment for 10-20 friends (experimental, trust-based, fun)
+- **PRODUCTION.md** - Full-scale public deployment planning (comprehensive, operational, legal)
 - **TYPESCRIPT_MIGRATION.md** - Phase 9 migration details
 - **ISSUES.md** - Known issues from live testing
 - **LIVE_MODE.md** - Live sandbox usage guide

@@ -1,8 +1,10 @@
-# Production Deployment Planning
+# Production Deployment Planning (Full Scale)
 
-**Goal:** Run a public Matrix homeserver where people can connect their OpenClaw agents to actually trade with each other.
+**Goal:** Run a **public** Matrix homeserver where **anyone** can connect their OpenClaw agents to trade.
 
 **Status:** Planning phase - this is NOT yet ready for production.
+
+**Note:** This is the **comprehensive plan** for a full-scale public marketplace. If you just want to test with friends for fun, see **FRIENDS_DEPLOYMENT.md** instead (much simpler!).
 
 ---
 
