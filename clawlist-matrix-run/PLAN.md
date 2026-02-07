@@ -245,6 +245,124 @@ Goal: Prevent agents from being manipulated to betray owner's interests.
 
 ---
 
+## Phase 11 — Testing & validation improvements
+
+**Goal:** Make the testing framework more robust and easier to use.
+
+- [ ] **Unit tests** for core modules:
+  - `score.ts`: price parsing, constraint detection, quality signals
+  - `matrix-api.ts`: API client methods
+  - `scenario.ts`: scenario parsing, mission generation
+  - Target: 80% code coverage for critical paths
+
+- [ ] **More scenarios**:
+  - `switch_aggressive.json`: buyer lowballs aggressively
+  - `switch_patient.json`: buyer waits for concessions
+  - `macbook_basic.json`: different item type
+  - `multi_item.json`: seller has multiple items
+  - Target: 5-10 diverse scenarios
+
+- [ ] **Scenario schema validation**:
+  - JSON schema for scenario configs
+  - Validate before running (catch typos early)
+  - Better error messages for invalid configs
+
+- [ ] **Statistical analysis for sweeps**:
+  - Compute mean, median, stddev for metrics
+  - Statistical significance testing (t-test)
+  - Confidence intervals
+  - Export results as CSV for analysis
+
+- [ ] **Better logging**:
+  - Structured JSON logs (not just console.log)
+  - Log levels (debug, info, warn, error)
+  - Per-agent log files
+  - Easy filtering by run_id, agent, time range
+
+**Acceptance:**
+- `npm test` runs unit tests, all pass
+- 5+ scenarios available in `scenarios/`
+- Sweep output includes statistical analysis
+- Logs are structured and filterable
+
+---
+
+## Phase 12 — Developer experience improvements
+
+**Goal:** Make it easier to develop, debug, and iterate.
+
+- [ ] **Migrate remaining bash scripts to TypeScript**:
+  - `lab/spawn_buyer_agents.sh` → `src/cli-spawn-buyers.ts`
+  - `lab/spawn_seller_agents.sh` → `src/cli-spawn-sellers.ts`
+  - `lab/populate_market.sh` → `src/cli-populate.ts`
+  - Keep operator helper scripts (human-in-the-loop)
+
+- [ ] **Element Web in docker-compose**:
+  - Add Element Web service to `docker-compose.yml`
+  - Auto-configure to point at local Synapse
+  - Access at `http://127.0.0.1:8080`
+  - No manual setup needed
+
+- [ ] **Better DM room detection**:
+  - Stamp run_id in first DM message
+  - Robust export filtering by run_id
+  - Handle multiple concurrent runs
+  - No more heuristic 2-member room detection
+
+- [ ] **runs/latest symlink**:
+  - After each run, update `runs/latest` → `runs/<runId>`
+  - Easy access to most recent results
+  - `cat runs/latest/out/summary.json` always works
+
+- [ ] **Makefile improvements**:
+  - `make test`: run unit tests
+  - `make logs RUN_ID=...`: tail logs for a run
+  - `make clean-runs KEEP=10`: delete old runs, keep 10 most recent
+  - `make validate-scenario SCENARIO=...`: check scenario before running
+
+**Acceptance:**
+- Element Web loads without manual config
+- `make test` works
+- Bash spawn scripts replaced with TypeScript
+- `runs/latest` always points to most recent run
+
+---
+
+## Phase 13 — Export & analysis tools
+
+**Goal:** Better tools for analyzing results and debugging issues.
+
+- [ ] **Enhanced export CLI**:
+  - Export by agent: `make export AGENT=@buyer:localhost`
+  - Export by date range: `make export FROM=2026-02-07 TO=2026-02-08`
+  - Export by listing_id: `make export LISTING=lst_abc123`
+  - Multiple output formats: JSONL, JSON, CSV
+
+- [ ] **Transcript viewer**:
+  - CLI tool to pretty-print transcripts
+  - Color-coded by speaker
+  - Filter by keywords
+  - Show timestamps, message IDs
+
+- [ ] **Scoring improvements**:
+  - Fix quote attribution bug (ISSUES.md)
+  - Add unit tests for edge cases
+  - More detailed quality metrics
+  - Confidence scores for detections
+
+- [ ] **Visualization tools** (optional):
+  - Generate timeline graph of negotiation
+  - Price trajectory chart
+  - Response time histogram
+  - Success rate over time
+
+**Acceptance:**
+- Can export transcripts flexibly (by agent, date, listing)
+- Transcript viewer makes debugging easy
+- Scoring bugs fixed and tested
+
+---
+
 ## Research Phases (see RESEARCH.md)
 
 Phases 11+ are **research questions**, not engineering tasks. They live in **RESEARCH.md**.
