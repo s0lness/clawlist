@@ -1,97 +1,257 @@
-# Clawlist Matrix Lab (persistent Synapse + Element) + Scenario Harness
+# Clawlist Matrix Lab - Agent Negotiation Test Harness
 
-This folder contains a **persistent Matrix lab**: keep Synapse + Element running, then spawn agents/runs.
+**TypeScript-based test framework for autonomous AI agent marketplace negotiation.**
 
-## Lab setup
-
-### Start the lab infra (local-only)
+## Quick Start
 
 ```bash
-cd clawlist-matrix-run
-./lab/up.sh
+# Install dependencies
+npm install
+
+# Build TypeScript
+npm run build
+
+# Start Matrix infrastructure (Synapse + Element)
+make up
+
+# Bootstrap users and market room
+make bootstrap
+
+# Run a test scenario
+make scenario SCENARIO=switch_basic DURATION_SEC=120
+
+# View results
+cat runs/latest/out/summary.json
 ```
 
-- Synapse: http://127.0.0.1:18008
-- Element UI: http://127.0.0.1:18080
+## Infrastructure
 
-### Bootstrap stable users + stable market room
+- **Synapse**: http://127.0.0.1:18008 (Matrix homeserver)
+- **Element UI**: http://127.0.0.1:18080 (web client to watch live)
 
+## Core Commands
+
+### Setup
 ```bash
-./lab/bootstrap.sh
+make build         # Compile TypeScript
+make up            # Start Synapse + Element
+make down          # Stop infrastructure
+make bootstrap     # Create users + #market:localhost room
 ```
 
-This ensures:
-- users: `@switch_seller:localhost`, `@switch_buyer:localhost`
-- stable room: `#market:localhost`
-- writes local-only files (gitignored):
-  - `.local/secrets.env` (Matrix access tokens)
-  - `.local/bootstrap.env` (room IDs, MXIDs)
-
-### Run a scenario
-
-There are three ways to run:
-
-#### 1) Basic end-to-end (hardcoded)
-
+### Testing
 ```bash
-RUN_ID=$(date +%Y%m%d_%H%M%S) DURATION_SEC=120 ./lab/run_scenario_basic.sh
+make scenario SCENARIO=switch_basic DURATION_SEC=120
+make sweep SCENARIO=switch_basic N=10
 ```
 
-#### 2) Scenario-driven (recommended)
-
-Scenarios live in `scenarios/*.json`.
-
+### Cleanup
 ```bash
-RUN_ID=$(date +%Y%m%d_%H%M%S) DURATION_SEC=120 ./lab/run_scenario.sh switch_basic
+make cleanup       # Stop stuck gateways (if needed)
 ```
 
-#### 3) Human-seeded seller (Telegram → operator → Matrix)
+## Test Modes
 
-This mode is for testing the “human talks to their agent, agent interacts on the forum” workflow.
+### 1. Scenario Testing (Automated)
+Run predefined negotiation scenarios between two AI agents.
 
 ```bash
-# starts switch-buyer as the autonomous buyer, and tells you what to DM the operator bot
+make scenario SCENARIO=switch_basic
+```
+
+**What happens:**
+1. Spawns seller + buyer agents with constraints
+2. Seller posts listing to #market:localhost
+3. Buyer sees listing, initiates DM negotiation
+4. Agents negotiate autonomously
+5. After DURATION_SEC, stops and exports transcripts
+6. Scores results (deal success, price violations, quality)
+
+**Scenarios available:**
+- `scenarios/switch_basic.json` - Nintendo Switch negotiation
+
+### 2. Batch Testing (Sweeps)
+Run multiple scenarios to measure success rate.
+
+```bash
+make sweep SCENARIO=switch_basic N=10
+```
+
+**Output:**
+- Individual runs: `runs/<sweepId>_1/`, `runs/<sweepId>_2/`, etc.
+- Aggregate stats: `runs/<sweepId>/aggregate.json`
+
+### 3. Live Sandbox Mode
+Persistent marketplace with multiple agent sellers/buyers.
+
+```bash
+make live-start POPULATE=8           # Start + populate market
+make live-agents-start SELLERS=3 BUYERS=2  # Spawn behavioral agents
+make live-status                     # Check health
+make live-stop                       # Shutdown
+```
+
+**Not yet migrated to TypeScript** - uses bash scripts in `lab/live_*.sh`
+
+### 4. Human-Seeded Mode
+You play the seller via Telegram, agent plays buyer.
+
+```bash
 make human-seller DURATION_SEC=300
 ```
 
-Both automated modes:
-- configure Matrix mention-gating (prevents runaway bot loops)
-- spawn seller+buyer gateways
-- create a **per-run DM room** and write `runs/<runId>/out/meta.json` (`dmRoomId`)
-  - the DM room invites `@admin:localhost` so you can open it in Element via the invite
-- inject missions + seed a listing in `#market:localhost`
-- stop gateways after `DURATION_SEC` (circuit breaker)
-- export transcripts + write `runs/<runId>/out/summary.json`
+**Not yet migrated to TypeScript** - uses `lab/run_human_seeded_seller.sh`
 
-Watch live in Element: join `#market:localhost`.
+## Output Structure
 
-### Clean up stuck ports (if needed)
+Each test run produces artifacts in `runs/<runId>/out/`:
 
-```bash
-./lab/cleanup_ports.sh
+```
+runs/<runId>/out/
+├── meta.json           # Run metadata (dmRoomId, agent MXIDs)
+├── market.jsonl        # Market room transcript
+├── dm.jsonl            # DM room transcript
+├── summary.json        # Scoring results
+├── gateway_*.log       # Agent gateway logs
+└── gateway_*.pid       # Process IDs
 ```
 
-## Sweeps (batch runs)
-
-Run a batch and get an aggregate success rate:
-
-```bash
-# 10 runs of switch_basic
-./lab/sweep.sh switch_basic 10
-
-# results + aggregate under runs/<sweepId>/
-ls -la runs/sweep_*/
-cat runs/sweep_*/aggregate.json
+### Summary Fields
+```json
+{
+  "runId": "test_183909",
+  "result": "pass|fail|no_deal",
+  "dealReached": true,
+  "finalPrice": 135,
+  "violations": [],
+  "metrics": {
+    "offerCount": 5,
+    "tFirstDmSec": 7,
+    "humanIntervention": false
+  },
+  "quality": {
+    "condition": true,
+    "accessories": true,
+    "logistics": true
+  }
+}
 ```
 
-## Outputs
+## Architecture
 
-Per-run artifacts live under:
-- `runs/<runId>/out/market.jsonl`
-- `runs/<runId>/out/dm.jsonl`
-- `runs/<runId>/out/meta.json`
-- `runs/<runId>/out/summary.json`
+### TypeScript Modules
 
-Sweep artifacts live under:
-- `runs/<sweepId>/results.jsonl`
-- `runs/<sweepId>/aggregate.json`
+```
+src/
+├── common.ts          # Utilities (ports, env, exec, retry)
+├── matrix-api.ts      # Matrix client v3 (typed)
+├── openclaw.ts        # OpenClaw CLI wrapper
+├── gateway.ts         # Gateway lifecycle management
+├── docker.ts          # Docker Compose orchestration
+├── scenario.ts        # Scenario loading + mission generation
+├── bootstrap.ts       # User/room bootstrap
+├── dm-room.ts         # Per-run DM room creation
+├── export.ts          # Transcript export (Matrix → JSONL)
+├── score.ts           # Evaluation scoring
+├── run-scenario.ts    # Main orchestrator (CLI)
+└── sweep.ts           # Batch testing (CLI)
+```
+
+### CLI Entry Points
+
+```
+dist/
+├── cli-up.js          # make up
+├── cli-down.js        # make down
+├── cli-bootstrap.js   # make bootstrap
+├── run-scenario.js    # make scenario
+└── sweep.js           # make sweep
+```
+
+## Development
+
+### Building
+```bash
+npm run build          # Compile TS → JS
+npm run watch          # Auto-recompile on changes
+npm run clean          # Delete dist/
+```
+
+### Adding a Scenario
+
+Create `scenarios/<name>.json`:
+```json
+{
+  "name": "iphone_basic",
+  "item": "iPhone 13",
+  "marketRoomAlias": "#market:localhost",
+  "seller": {
+    "profile": "switch-seller",
+    "anchorPrice": 400,
+    "floorPrice": 350
+  },
+  "buyer": {
+    "profile": "switch-buyer",
+    "startOffer": 300,
+    "ceilingPrice": 380
+  },
+  "durationSec": 120,
+  "seed": {
+    "bodyTemplate": "RUN_ID:{RUN_ID} SELLING: iPhone 13 — asking 400€. DM me."
+  }
+}
+```
+
+Then run:
+```bash
+make scenario SCENARIO=iphone_basic
+```
+
+## Troubleshooting
+
+### Synapse won't start
+```bash
+# Check if config exists
+ls -la synapse-data2/homeserver.yaml
+
+# If missing, regenerate
+docker-compose -f infra/docker-compose.yml run --rm synapse generate
+
+# Ensure registration enabled
+echo 'enable_registration: true' >> synapse-data2/homeserver.yaml
+echo 'enable_registration_without_verification: true' >> synapse-data2/homeserver.yaml
+
+# Restart
+make down && make up
+```
+
+### Gateway already running
+```bash
+# Stop all test gateways
+pkill -f "openclaw.*switch-(seller|buyer)"
+
+# Or use cleanup (skips main gateway)
+make cleanup
+```
+
+### Port conflicts
+```bash
+# Check what's using ports 18791-18899
+ss -ltnp | grep -E ':(1879[0-9]|188[0-9]{2})'
+
+# Kill stuck processes
+make cleanup
+```
+
+## Documentation
+
+- **PLAN.md** - Development roadmap (Phases 0-9)
+- **TYPESCRIPT_MIGRATION.md** - Phase 9 migration details
+- **ISSUES.md** - Known issues from live testing
+- **LIVE_MODE.md** - Live sandbox usage guide
+
+## Related
+
+- **GitHub**: https://github.com/s0lness/clawlist
+- **OpenClaw**: https://openclaw.ai
+- **Matrix Protocol**: https://matrix.org
