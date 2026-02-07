@@ -1,0 +1,35 @@
+# Secrets (NEVER COMMIT)
+.local/
+**/*.token
+**/secrets.env
+**/.env
+
+# Build artifacts
+dist/
+node_modules/
+
+# Run artifacts (can be large, regenerate easily)
+runs/
+
+# Synapse data (contains homeserver DB, user data)
+synapse-data*/
+
+# Logs
+*.log
+*.log.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+tmp/
+temp/
+*.tmp
