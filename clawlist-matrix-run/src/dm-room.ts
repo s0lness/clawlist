@@ -4,6 +4,7 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 export interface DmRoomMeta {
+  runId?: string;
   dmRoomId: string;
   seller: {
     mxid: string;
@@ -48,6 +49,7 @@ export async function createDmRoom(
   await joinRoom(buyerClient, dmRoomId);
 
   const meta: DmRoomMeta = {
+    runId,
     dmRoomId,
     seller: { mxid: sellerMxid },
     buyer: { mxid: buyerMxid },

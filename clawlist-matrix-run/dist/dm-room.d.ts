@@ -1,4 +1,5 @@
 export interface DmRoomMeta {
+    runId?: string;
     dmRoomId: string;
     seller: {
         mxid: string;

@@ -22,6 +22,7 @@ export async function createDmRoom(homeserver, sellerMxid, sellerToken, buyerMxi
     buyerClient.accessToken = buyerToken;
     await joinRoom(buyerClient, dmRoomId);
     const meta = {
+        runId,
         dmRoomId,
         seller: { mxid: sellerMxid },
         buyer: { mxid: buyerMxid },

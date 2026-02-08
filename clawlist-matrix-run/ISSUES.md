@@ -10,15 +10,17 @@
 
 **Status:** These issues are documented but NOT yet fixed. See PLAN.md Phase 11 for scheduled fixes.
 
-## Current Status (2026-02-08)
+## Current Status (2026-02-08 02:24)
 
 📋 **Scheduled for Fix (PLAN.md Phase 11):**
 1. Internal messages leaking to public market room → PLAN.md Phase 11
 2. Operator bot not proactive (manual DM checks) → PLAN.md Phase 11
 3. Buyer agent flip-flopping decisions → PLAN.md Phase 11
-6. Scoring: offer attribution bug → PLAN.md Phase 11
-7. **NEW**: Timing calculation bug (tFirstDmSec incorrect) → PLAN.md Phase 11
-8. **NEW**: Approval workflow undefined → PLAN.md Phase 11
+8. Approval workflow undefined → PLAN.md Phase 11 (documented as intended behavior for now)
+
+✅ **FIXED (2026-02-08):**
+6. Scoring: offer attribution bug → FIXED (commit pending)
+7. Timing calculation bug → FIXED (commit pending)
 
 ✅ **Fixed:**
 - Matrix plugin auto-enable (commit 8197c35)

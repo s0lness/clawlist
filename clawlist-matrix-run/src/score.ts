@@ -139,6 +139,27 @@ export async function scoreRun(
   const offers: Offer[] = [];
   for (const e of events) {
     const b = bodyOf(e);
+    const lower = b.toLowerCase();
+    
+    // Skip messages that are rejections or quotes (negative context)
+    const isRejection = includesAny(lower, [
+      'too low',
+      'too high',
+      'too much',
+      'too little',
+      'not enough',
+      'is low',
+      'is high',
+      "can't do",
+      "cannot do",
+      "won't accept",
+      'no to',
+      'rejected',
+      'decline',
+    ]);
+    
+    if (isRejection) continue;
+    
     const p = parseEuroPrice(b);
     if (p == null) continue;
     const who = e.sender === sellerMxid ? 'seller' : e.sender === buyerMxid ? 'buyer' : null;
@@ -200,16 +221,19 @@ export async function scoreRun(
 
   const finalPrice = offers.length ? offers[offers.length - 1].price : null;
 
-  // First DM latency
-  const firstMarketMsg = market.find(
-    (e) => bodyOf(e).includes('SELLING') || bodyOf(e).includes('RUN_ID')
-  );
-  const firstDmMsg = dm[0] || null;
+  // First DM latency - measure buyer's first message (not room creation)
+  // Find the listing for THIS run (use runId if available, otherwise find most recent SELLING)
+  const runId = meta?.runId || null;
+  const firstMarketMsg = runId
+    ? market.find((e) => bodyOf(e).includes(`RUN_ID:${runId}`))
+    : market.reverse().find((e) => bodyOf(e).includes('SELLING') || bodyOf(e).includes('RUN_ID'));
+  
+  const firstBuyerDm = dm.find((e) => e.sender === buyerMxid && isMsg(e));
   const tFirstDmSec =
-    firstMarketMsg && firstDmMsg && firstMarketMsg.origin_server_ts && firstDmMsg.origin_server_ts
+    firstMarketMsg && firstBuyerDm && firstMarketMsg.origin_server_ts && firstBuyerDm.origin_server_ts
       ? Math.max(
           0,
-          Math.round((firstDmMsg.origin_server_ts - firstMarketMsg.origin_server_ts) / 1000)
+          Math.round((firstBuyerDm.origin_server_ts - firstMarketMsg.origin_server_ts) / 1000)
         )
       : null;
 
