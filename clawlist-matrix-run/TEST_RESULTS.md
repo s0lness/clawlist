@@ -1,13 +1,32 @@
 # Test Results - Autonomous Agent Behavior
 
-## Test: autonomy_test_004528
-**Date**: 2026-02-08 00:45  
+## Latest Tests
+
+### Test: test2_022524 ✅ ALL FIXES VERIFIED
+**Date**: 2026-02-08 02:25  
 **Duration**: 90 seconds  
 **Scenario**: switch_basic
 
+**Result**: ✅ **SUCCESS** - All bug fixes working!
+
+**Metrics:**
+- ✅ tFirstDmSec: **7 seconds** (FIXED! was 21988s)
+- ✅ Violations: **1** (NO_APPROVAL only, no false positives)
+- ✅ runId: "test2_022524" (FIXED! was null)
+- ✅ Deal closed: 150€ (seller floor)
+- ✅ Quality signals: 3/3
+
+**Verified fixes:**
+1. Timing calculation working correctly
+2. Scoring attribution working (no false positives)
+3. runId included in every run
+
 ---
 
-## 🎯 Summary
+### Test: autonomy_test_004528 (bugs discovered)
+**Date**: 2026-02-08 00:45  
+**Duration**: 90 seconds  
+**Scenario**: switch_basic
 
 **Result**: ✅ **SUCCESS** (agents negotiated autonomously, deal closed)
 
